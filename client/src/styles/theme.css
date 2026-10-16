@@ -1,0 +1,47 @@
+
+:root {
+  /* Brand */
+  --color-brand-navy: #10132e;
+  --color-brand-primary: #4169e8;
+  --color-brand-primary-hover: #3157d5;
+
+  /* Surfaces */
+  --color-app-bg: #eef0f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f7fb;
+
+  /* Typography */
+  --color-text-primary: #171b2b;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+
+  /* Borders and focus */
+  --color-border: #dce1ea;
+  --color-focus: rgba(65, 105, 232, 0.2);
+
+  /* Status */
+  --color-success: #15803d;
+  --color-success-bg: #dcfce7;
+  --color-warning: #a16207;
+  --color-warning-bg: #fef3c7;
+  --color-danger: #b91c1c;
+  --color-danger-bg: #fee2e2;
+  --color-info: #1d4ed8;
+  --color-info-bg: #dbeafe;
+
+  /* Deliberately restrained corner radius */
+  --radius-control: 7px;
+  --radius-button: 7px;
+  --radius-card: 10px;
+  --radius-panel: 16px;
+  --radius-pill: 999px;
+
+  /* Subtle elevation */
+  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-hover: 0 5px 14px rgba(15, 23, 42, 0.08);
+
+  /* Motion */
+  --motion-fast: 150ms;
+  --motion-normal: 220ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}
