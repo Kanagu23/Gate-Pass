@@ -23,7 +23,7 @@ const roleHome = {
   DIRECTOR: "/director",
 };
 
-function AppRoutes() {
+const AppRoutes = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -108,10 +108,12 @@ function AppRoutes() {
   );
 }
 
-export default function App() {
+const App = () => {
   return (
     <BrowserRouter>
       <AppRoutes />
     </BrowserRouter>
   );
-}
+};
+
+export default App;

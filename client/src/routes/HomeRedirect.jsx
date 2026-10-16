@@ -2,7 +2,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export default function HomeRedirect({ roleHome }) {
+const HomeRedirect = ({ roleHome }) => {
   const { user } = useAuth();
 
   if (!user) {
@@ -15,4 +15,6 @@ export default function HomeRedirect({ roleHome }) {
       replace
     />
   );
-}
+};
+
+export default HomeRedirect;
