@@ -8,7 +8,13 @@ import {
 
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import HomeRedirect from "./routes/HomeRedirect";
+
 import Login from "./pages/auth/login";
+import DashboardPage from "./pages/dashboard/DashboardPage";
+import AppLayout from "./layouts/AppLayout";
+import Unauthorized from "./pages/errors/Unauthorized";
+import NotFound from "./pages/errors/NotFound";
 
 const roleHome = {
   ADMIN: "/admin",
@@ -17,126 +23,95 @@ const roleHome = {
   DIRECTOR: "/director",
 };
 
-function HomeRedirect() {
+function AppRoutes() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <p className="p-8 text-center">Loading...</p>;
-  }
-
-  return (
-    <Navigate
-      to={user ? roleHome[user.role] || "/unauthorized" : "/login"}
-      replace
-    />
-  );
-}
-
-const DashboardPage=({ title })=>{
-  const { user, logout } = useAuth();
-
-  async function handleLogout() {
-    try {
-      await logout();
-    } finally {
-      window.location.href = "/login";
-    }
-  }
-
-  return (
-    <main className="min-h-screen bg-slate-100 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            {title}
-          </h1>
-          <p className="mt-1 text-slate-600">
-            Welcome, {user?.name}
-          </p>
-        </div>
-
-        <button
-          onClick={handleLogout}
-          className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-        >
-          Logout
-        </button>
-      </header>
-
-      <section className="mt-8 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">
-          Gate Pass Overview
-        </h2>
-        <p className="mt-2 text-slate-600">
-          Your dashboard is connected. Visitor statistics and
-          role-specific features will be added next.
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-sm text-slate-500">
+          Checking your session...
         </p>
-      </section>
-    </main>
-  );
-}
+      </div>
+    );
+  }
 
-const Unauthorized = () => {
   return (
-    <main className="p-8 text-center">
-      <h1 className="text-2xl font-bold">Access denied</h1>
-      <p className="mt-2">You don't have permission to view this page.</p>
-      <a className="mt-4 inline-block text-blue-700 underline" href="/">
-        Go to your dashboard
-      </a>
-    </main>
-  );
-}
-const NotFound = () => {
-  return (
-    <main className="p-8 text-center">
-      <h1 className="text-2xl font-bold">404 — Page not found</h1>
-      <a className="mt-4 inline-block text-blue-700 underline" href="/">
-        Return home
-      </a>
-    </main>
-  );
-}
+    <Routes>
+      <Route
+        path="/"
+        element={<HomeRedirect roleHome={roleHome} />}
+      />
 
-const App = () => {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomeRedirect />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
+      <Route
+        path="/login"
+        element={
+          user ? (
+            <Navigate
+              to={roleHome[user.role] || "/unauthorized"}
+              replace
+            />
+          ) : (
+            <Login />
+          )
+        }
+      />
 
-        <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+      <Route path="/unauthorized" element={<Unauthorized />} />
+
+      <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+        <Route element={<AppLayout />}>
           <Route
             path="/admin"
-            element={<DashboardPage title="Admin Dashboard" />}
+            element={<DashboardPage role="ADMIN" />}
           />
         </Route>
+      </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={["GATE_EMPLOYEE"]} />}>
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={["GATE_EMPLOYEE"]} />
+        }
+      >
+        <Route element={<AppLayout />}>
           <Route
             path="/gate"
-            element={<DashboardPage title="Gate Employee Dashboard" />}
+            element={<DashboardPage role="GATE_EMPLOYEE" />}
           />
         </Route>
+      </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={["EMPLOYEE"]} />}>
+      <Route
+        element={<ProtectedRoute allowedRoles={["EMPLOYEE"]} />}
+      >
+        <Route element={<AppLayout />}>
           <Route
             path="/employee"
-            element={<DashboardPage title="Employee Dashboard" />}
+            element={<DashboardPage role="EMPLOYEE" />}
           />
         </Route>
+      </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={["DIRECTOR"]} />}>
+      <Route
+        element={<ProtectedRoute allowedRoles={["DIRECTOR"]} />}
+      >
+        <Route element={<AppLayout />}>
           <Route
             path="/director"
-            element={<DashboardPage title="Director Dashboard" />}
+            element={<DashboardPage role="DIRECTOR" />}
           />
         </Route>
+      </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
     </BrowserRouter>
   );
 }
-export default App;
