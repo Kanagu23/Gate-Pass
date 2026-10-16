@@ -408,7 +408,7 @@ const checkOutVisitor = async (req, res) => {
 };
 
 const checkOutByQR = async (req, res) => {
-  const { token } = req.body || {};
+  const { qrToken: token } = req.body || {};
 
   // Validate the scanned QR token.
   if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) {
@@ -616,6 +616,48 @@ const verifyVisitorPass = async (req, res) => {
   });
 };
 
+const getVisitors = async (req, res) => {
+  const allowedStatuses = [
+    "PENDING",
+    "APPROVED",
+    "REJECTED",
+    "CHECKED_IN",
+    "CHECKED_OUT",
+  ];
+
+  const { status } = req.query;
+
+  if (status && !allowedStatuses.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid visitor status",
+    });
+  }
+
+  const filter = status ? { status } : {};
+
+  const visitors = await Visitor.find(filter)
+    .select(
+      "visitorId name mobile organization visitingPurpose " +
+      "visitingEmployee status inTime outTime " +
+      "passExpiresAt createdAt"
+    )
+    .populate(
+      "visitingEmployee",
+      "employeeId name department"
+    )
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .lean();
+
+  return res.status(200).json({
+    success: true,
+    count: visitors.length,
+    visitors,
+  });
+};
+
+
 module.exports = {
   registerVisitor,
   getPendingVisitors,
@@ -625,5 +667,6 @@ module.exports = {
   checkOutVisitor,
   checkOutByQR,
   verifyVisitorPass,
-  getVisitorPass
+  getVisitorPass,
+  getVisitors
 };

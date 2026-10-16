@@ -1,10 +1,4 @@
-
-import {
-  BrowserRouter,
-  Navigate,
-  Route,
-  Routes,
-} from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -15,8 +9,10 @@ import DashboardPage from "./pages/dashboard/DashboardPage";
 import AppLayout from "./layouts/AppLayout";
 import Unauthorized from "./pages/errors/Unauthorized";
 import NotFound from "./pages/errors/NotFound";
-
-
+import VisitorRegistrationPage from "./pages/visitor/VisitorRegistrationPage";
+import VisitorApprovalPage from "./pages/visitor/VisitorApprovalPage";
+import VisitorListPage from "./pages/visitor/VisitorListPage";
+import VisitorCheckoutPage from "./pages/visitor/VisitorCheckoutPage";
 const roleHome = {
   ADMIN: "/admin",
   GATE_EMPLOYEE: "/gate",
@@ -30,28 +26,20 @@ const AppRoutes = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-slate-500">
-          Checking your session...
-        </p>
+        <p className="text-sm text-slate-500">Checking your session...</p>
       </div>
     );
   }
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={<HomeRedirect roleHome={roleHome} />}
-      />
+      <Route path="/" element={<HomeRedirect roleHome={roleHome} />} />
 
       <Route
         path="/login"
         element={
           user ? (
-            <Navigate
-              to={roleHome[user.role] || "/unauthorized"}
-              replace
-            />
+            <Navigate to={roleHome[user.role] || "/unauthorized"} replace />
           ) : (
             <Login />
           )
@@ -62,61 +50,60 @@ const AppRoutes = () => {
 
       <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
         <Route element={<AppLayout />}>
+          <Route path="/admin" element={<DashboardPage role="ADMIN" />} />
           <Route
-            path="/admin"
-            element={<DashboardPage role="ADMIN" />}
+            path="/admin/visitors/:id/pass"
+            element={<VisitorPassPage />}
           />
-            <Route
-      path="/admin/visitors/:id/pass"
-      element={<VisitorPassPage />}
-    />
+          <Route
+            path="/admin/visitors/register"
+            element={<VisitorRegistrationPage />}
+          />
+          <Route path="/admin/visitors" element={<VisitorListPage />} />
+          <Route
+            path="/admin/visitors/check-out"
+            element={<VisitorCheckoutPage />}
+          />
         </Route>
-      
       </Route>
 
-      <Route
-        element={
-          <ProtectedRoute allowedRoles={["GATE_EMPLOYEE"]} />
-        }
-      >
+      <Route element={<ProtectedRoute allowedRoles={["GATE_EMPLOYEE"]} />}>
         <Route element={<AppLayout />}>
           <Route
             path="/gate"
             element={<DashboardPage role="GATE_EMPLOYEE" />}
           />
-           <Route
-      path="/gate/visitors/:id/pass"
-      element={<VisitorPassPage />}
-    />
-        </Route>
-      </Route>
-
-      <Route
-        element={<ProtectedRoute allowedRoles={["EMPLOYEE"]} />}
-      >
-        <Route element={<AppLayout />}>
+          <Route path="/gate/visitors/:id/pass" element={<VisitorPassPage />} />
           <Route
-            path="/employee"
-            element={<DashboardPage role="EMPLOYEE" />}
+            path="/gate/visitors/register"
+            element={<VisitorRegistrationPage />}
+          />
+          <Route path="/admin/visitors" element={<VisitorListPage />} />
+          <Route
+            path="/admin/visitors/check-out"
+            element={<VisitorCheckoutPage />}
           />
         </Route>
       </Route>
 
-      <Route
-        element={<ProtectedRoute allowedRoles={["DIRECTOR"]} />}
-      >
+      <Route element={<ProtectedRoute allowedRoles={["EMPLOYEE"]} />}>
         <Route element={<AppLayout />}>
-          <Route
-            path="/director"
-            element={<DashboardPage role="DIRECTOR" />}
-          />
+          <Route path="/employee" element={<DashboardPage role="EMPLOYEE" />} />
+          <Route path="/employee/approvals" element={<VisitorApprovalPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute allowedRoles={["DIRECTOR"]} />}>
+        <Route element={<AppLayout />}>
+          <Route path="/director" element={<DashboardPage role="DIRECTOR" />} />
+          <Route path="/director/approvals" element={<VisitorApprovalPage />} />
         </Route>
       </Route>
 
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
-}
+};
 
 const App = () => {
   return (

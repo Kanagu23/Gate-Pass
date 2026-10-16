@@ -1,5 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  UserPlus,
+  ScanLine,
+  ClipboardCheck,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const Sidebar = ({ mobileOpen = false, onClose }) => {
@@ -9,16 +15,49 @@ const Sidebar = ({ mobileOpen = false, onClose }) => {
     ADMIN: [
       { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
       { label: "Visitors", path: "/admin/visitors", icon: Users },
+      {
+        label: "Register Visitor",
+        path: "/admin/visitors/register",
+        icon: UserPlus,
+      },
+      {
+        label: "QR Check-Out",
+        path: "/admin/visitors/check-out",
+        icon: ScanLine,
+      },
     ],
+
     GATE_EMPLOYEE: [
       { label: "Dashboard", path: "/gate", icon: LayoutDashboard },
-      { label: "Register Visitor", path: "/gate/register", icon: Users },
+      { label: "Visitors", path: "/gate/visitors", icon: Users },
+      {
+        label: "Register Visitor",
+        path: "/gate/visitors/register",
+        icon: UserPlus,
+      },
+      {
+        label: "QR Check-Out",
+        path: "/gate/visitors/check-out",
+        icon: ScanLine,
+      },
     ],
+
     EMPLOYEE: [
       { label: "Dashboard", path: "/employee", icon: LayoutDashboard },
+      {
+        label: "Pending Approvals",
+        path: "/employee/approvals",
+        icon: ClipboardCheck,
+      },
     ],
+
     DIRECTOR: [
       { label: "Dashboard", path: "/director", icon: LayoutDashboard },
+      {
+        label: "Pending Approvals",
+        path: "/director/approvals",
+        icon: ClipboardCheck,
+      },
     ],
   };
 
@@ -35,9 +74,10 @@ const Sidebar = ({ mobileOpen = false, onClose }) => {
           <NavLink
             key={path}
             to={path}
+            end
             onClick={onClose}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${
+              `flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-blue-50 text-blue-700"
                   : "text-slate-600 hover:bg-slate-50"

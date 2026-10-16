@@ -25,6 +25,7 @@ app.use("/api/health", require("./routes/health.routes"));
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/visitors", require("./routes/visitor.routes"));
 app.use("/api/employees", require("./routes/employee.routes"));
+app.use("/api/dashboard",  require("./routes/dashboard.routes"));
 
 app.use((err, req, res, next) => {
   console.error("API error:", err.message);

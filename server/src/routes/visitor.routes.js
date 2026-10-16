@@ -12,7 +12,8 @@ const {
   checkOutVisitor,
   verifyVisitorPass,
   checkOutByQR,
-  getVisitorPass
+  getVisitorPass,
+  getVisitors
 } = require("../controllers/visitor.controller");
 
 const router = express.Router();
@@ -77,4 +78,12 @@ router.get(
   allowRoles("ADMIN", "GATE_EMPLOYEE"),
   getVisitorPass
 );
+
+router.get(
+  "/",
+  authenticate,
+  allowRoles("ADMIN", "GATE_EMPLOYEE"),
+  getVisitors
+);
+
 module.exports = router;
