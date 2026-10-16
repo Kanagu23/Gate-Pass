@@ -3,6 +3,7 @@ const QRCode = require("qrcode");
 const Visitor = require("../models/Visitor");
 const User = require("../models/Users");
 const generateVisitorId = require("../utils/generateVisitorId");
+const { encryptPassToken ,decryptPassToken} = require("../utils/passEncryption");
 const { generatePassToken, hashPassToken } = require("../utils/passToken");
 
 const validPurposes = ["Audit", "Relative", "Suppliers", "Others"];
@@ -185,6 +186,7 @@ const approveVisitor = async (req, res) => {
   }
 
   const { token, tokenHash } = generatePassToken();
+  const encryptedToken = encryptPassToken(token);
   const approvedAt = new Date();
 
   // Only approve a pending visitor assigned to this employee.
@@ -205,6 +207,7 @@ const approveVisitor = async (req, res) => {
 
           // Secure QR pass
           qrTokenHash: tokenHash,
+          qrTokenEncrypted: encryptedToken,
           passIssuedAt: approvedAt,
           passExpiresAt: {
             $dateAdd: {
@@ -236,22 +239,20 @@ const approveVisitor = async (req, res) => {
     width: 300,
   });
 
-
-return res.status(200).json({
-  success: true,
-  message: "Visitor approved and checked in successfully",
-  visitor: {
-    id: visitor._id,
-    visitorId: visitor.visitorId,
-    name: visitor.name,
-    status: visitor.status,
-    approvedAt: visitor.approvedAt,
-    inTime: visitor.inTime,
-    passExpiresAt: visitor.passExpiresAt,
-    qrCode,
-  },
-});
-
+  return res.status(200).json({
+    success: true,
+    message: "Visitor approved and checked in successfully",
+    visitor: {
+      id: visitor._id,
+      visitorId: visitor.visitorId,
+      name: visitor.name,
+      status: visitor.status,
+      approvedAt: visitor.approvedAt,
+      inTime: visitor.inTime,
+      passExpiresAt: visitor.passExpiresAt,
+      qrCode,
+    },
+  });
 };
 
 const rejectVisitor = async (req, res) => {
@@ -406,6 +407,150 @@ const checkOutVisitor = async (req, res) => {
   });
 };
 
+const checkOutByQR = async (req, res) => {
+  const { token } = req.body || {};
+
+  // Validate the scanned QR token.
+  if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid QR token format",
+    });
+  }
+
+  const tokenHash = hashPassToken(token);
+  const now = new Date();
+
+  // Atomically complete the visitor's exit.
+  const visitor = await Visitor.findOneAndUpdate(
+    {
+      qrTokenHash: tokenHash,
+      status: "CHECKED_IN",
+      inTime: { $ne: null },
+      outTime: null,
+    },
+    {
+      $set: {
+        status: "CHECKED_OUT",
+        outTime: now,
+      },
+      $inc: {
+        visitCount: 1,
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  if (!visitor) {
+    return res.status(409).json({
+      success: false,
+      message: "QR pass is invalid or visitor has already checked out",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Visitor checked out successfully",
+    visitor: {
+      id: visitor._id,
+      visitorId: visitor.visitorId,
+      name: visitor.name,
+      status: visitor.status,
+      inTime: visitor.inTime,
+      outTime: visitor.outTime,
+      visitCount: visitor.visitCount,
+    },
+  });
+};
+
+const getVisitorPass = async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid visitor ID",
+    });
+  }
+
+  const visitor = await Visitor.findById(id)
+    .select("+qrTokenEncrypted")
+    .populate(
+      "visitingEmployee",
+      "employeeId name department phone email role"
+    );
+
+  if (!visitor) {
+    return res.status(404).json({
+      success: false,
+      message: "Visitor not found",
+    });
+  }
+
+  // Only currently checked-in visitors can have
+  // an active visitor pass retrieved.
+  if (visitor.status !== "CHECKED_IN") {
+    return res.status(403).json({
+      success: false,
+      message: "Visitor pass is not active",
+    });
+  }
+
+  if (
+    !visitor.passExpiresAt ||
+    visitor.passExpiresAt.getTime() <= Date.now()
+  ) {
+    return res.status(403).json({
+      success: false,
+      message: "Visitor pass has expired",
+    });
+  }
+
+  if (!visitor.qrTokenEncrypted) {
+    return res.status(409).json({
+      success: false,
+      message: "Encrypted QR token is unavailable for this pass",
+    });
+  }
+
+  // Recover the token only on the backend.
+  const token = decryptPassToken(
+    visitor.qrTokenEncrypted
+  );
+
+  const qrCode = await QRCode.toDataURL(token, {
+    errorCorrectionLevel: "M",
+    margin: 2,
+    width: 300,
+  });
+
+  res.set("Cache-Control", "no-store");
+
+  return res.status(200).json({
+    success: true,
+    message: "Visitor pass retrieved successfully",
+    visitor: {
+      id: visitor._id,
+      visitorId: visitor.visitorId,
+      name: visitor.name,
+      mobile: visitor.mobile,
+      organization: visitor.organization,
+      profilePhoto: visitor.profilePhoto,
+      visitingPurpose: visitor.visitingPurpose,
+      visitingEmployee: visitor.visitingEmployee,
+      status: visitor.status,
+      inTime: visitor.inTime,
+      validationHours: visitor.validationHours,
+      passIssuedAt: visitor.passIssuedAt,
+      passExpiresAt: visitor.passExpiresAt,
+      qrCode,
+    },
+  });
+};
+
 const verifyVisitorPass = async (req, res) => {
   const { token } = req.body || {};
 
@@ -478,5 +623,7 @@ module.exports = {
   rejectVisitor,
   checkInVisitor,
   checkOutVisitor,
+  checkOutByQR,
   verifyVisitorPass,
+  getVisitorPass
 };

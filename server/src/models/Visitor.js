@@ -99,6 +99,11 @@ const visitorSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
+    qrTokenEncrypted: {
+  type: String,
+  default: null,
+  select: false,
+},
     passIssuedAt: {
       type: Date,
       default: null,

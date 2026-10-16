@@ -9,12 +9,13 @@ import {
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import HomeRedirect from "./routes/HomeRedirect";
-
+import VisitorPassPage from "./pages/visitor/VisitorPassPage";
 import Login from "./pages/auth/login";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import AppLayout from "./layouts/AppLayout";
 import Unauthorized from "./pages/errors/Unauthorized";
 import NotFound from "./pages/errors/NotFound";
+
 
 const roleHome = {
   ADMIN: "/admin",
@@ -65,7 +66,12 @@ const AppRoutes = () => {
             path="/admin"
             element={<DashboardPage role="ADMIN" />}
           />
+            <Route
+      path="/admin/visitors/:id/pass"
+      element={<VisitorPassPage />}
+    />
         </Route>
+      
       </Route>
 
       <Route
@@ -78,6 +84,10 @@ const AppRoutes = () => {
             path="/gate"
             element={<DashboardPage role="GATE_EMPLOYEE" />}
           />
+           <Route
+      path="/gate/visitors/:id/pass"
+      element={<VisitorPassPage />}
+    />
         </Route>
       </Route>
 
