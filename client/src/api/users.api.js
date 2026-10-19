@@ -8,3 +8,18 @@ export const createUser = async (userData) => {
 
   return response.data;
 };
+
+export const getUsers = async () => {
+  const response = await api.get("/auth/users");
+  return response.data;
+};
+
+
+export const updateUserStatus = async (userId, isActive) => {
+  const response = await api.patch(
+    `/auth/users/${userId}/status`,
+    { isActive }
+  );
+
+  return response.data;
+};

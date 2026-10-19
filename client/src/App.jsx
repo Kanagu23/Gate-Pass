@@ -17,6 +17,7 @@ import VisitorListPage from "./pages/visitor/VisitorListPage";
 import VisitorCheckoutPage from "./pages/visitor/VisitorCheckoutPage";
 import CreateUserPage from "./pages/admin/CreateUserPage";
 import DepartmentManagementPage from "./pages/admin/DepartmentManagementPage";
+import UserManagementPage from "./pages/admin/UserManagementPage";
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
@@ -59,6 +60,10 @@ const AppRoutes = () => {
             path="/admin/departments"
             element={<DepartmentManagementPage />}
           />
+          <Route
+  path="/admin/users"
+  element={<UserManagementPage />}
+/>
           <Route path="/admin/users/create" element={<CreateUserPage />} />
         </Route>
       </Route>

@@ -1,10 +1,9 @@
-import { useState } from "react";
-import { CheckCircle2, Search, UserPlus } from "lucide-react";
+import { useState ,useEffect} from "react";
+import { UserPlus } from "lucide-react";
 
-import {
-  registerVisitor,
-  searchVisitingEmployee,
-} from "../../api/visitor.api";
+import { registerVisitor } from "../../api/visitor.api";
+import { getDepartments } from "../../api/department.api";
+import EmployeeSearch from "../../components/common/EmployeeSearch";
 import { useAuth } from "../../context/AuthContext";
 import Alert from "../../components/common/Alert";
 import Avatar from "../../components/common/Avatar";
@@ -14,6 +13,7 @@ import Input from "../../components/common/Input";
 import PageHeader from "../../components/common/PageHeader";
 import Select from "../../components/common/Select";
 import Textarea from "../../components/common/Textarea";
+
 
 const initialForm = {
   name: "",
@@ -39,15 +39,16 @@ const Detail = ({ label, value }) => (
 
 const VisitorRegistrationPage = () => {
   const [form, setForm] = useState(initialForm);
-  const [employeeId, setEmployeeId] = useState("");
   const [employee, setEmployee] = useState(null);
 
-  const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const [searchError, setSearchError] = useState("");
   const [formError, setFormError] = useState("");
   const [success, setSuccess] = useState(null);
+
+  const [departments, setDepartments] = useState([]);
+const [selectedDepartment, setSelectedDepartment] = useState("");
+const [loadingDepartments, setLoadingDepartments] = useState(true);
+const [departmentError, setDepartmentError] = useState("");
   const { user } = useAuth();
 
   const dashboardPath = user?.role === "ADMIN" ? "/admin" : "/gate";
@@ -57,28 +58,6 @@ const VisitorRegistrationPage = () => {
     setForm((previous) => ({ ...previous, [name]: value }));
   };
 
-  const handleEmployeeSearch = async () => {
-    if (!/^EMP\d+$/i.test(employeeId.trim())) {
-      setEmployee(null);
-      setSearchError("Enter a valid Employee ID, e.g. EMP0001.");
-      return;
-    }
-
-    try {
-      setSearching(true);
-      setSearchError("");
-      setEmployee(null);
-
-      const response = await searchVisitingEmployee(
-        employeeId.trim().toUpperCase()
-      );
-      setEmployee(response.employee);
-    } catch (error) {
-      setSearchError(error.response?.data?.message || "Unable to find employee.");
-    } finally {
-      setSearching(false);
-    }
-  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -93,18 +72,18 @@ const VisitorRegistrationPage = () => {
       setFormError("");
       setSuccess(null);
 
-      const response = await registerVisitor({
-        ...form,
-        name: form.name.trim(),
-        mobile: form.mobile.trim(),
-        visitingEmployee: employee.id,
-        validationHours: Number(form.validationHours),
-      });
+    const response = await registerVisitor({
+  ...form,
+  name: form.name.trim(),
+  mobile: form.mobile.trim(),
+  visitingEmployee: employee.id,
+  validationHours: Number(form.validationHours),
+});
 
       setSuccess(response.visitor);
       setForm(initialForm);
-      setEmployeeId("");
-      setEmployee(null);
+      setSelectedDepartment("");
+setEmployee(null);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setFormError(
@@ -115,6 +94,37 @@ const VisitorRegistrationPage = () => {
       setSubmitting(false);
     }
   };
+
+  
+useEffect(() => {
+  let active = true;
+
+  const loadDepartments = async () => {
+    try {
+      const response = await getDepartments();
+
+      if (active) {
+        setDepartments(
+          (response.departments || []).filter(
+            (department) => department.isActive
+          )
+        );
+      }
+    } catch (error) {
+      if (active) {
+        setDepartmentError("Unable to load departments.");
+      }
+    } finally {
+      if (active) setLoadingDepartments(false);
+    }
+  };
+
+  loadDepartments();
+
+  return () => {
+    active = false;
+  };
+}, []);
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -193,76 +203,60 @@ const VisitorRegistrationPage = () => {
           </div>
         </Card>
 
-        <Card
-          title="Visiting employee / director"
-          description="Look up by Employee ID to fetch their details."
-          className="rise"
-          style={{ "--i": 2 }}
+      
+<Card
+  title="Visiting employee / director"
+  description="Select a department and find the person being visited."
+  className="rise"
+  style={{ "--i": 2 }}
+>
+  <div className="space-y-4">
+    <Select
+      id="visitingDepartment"
+      label="Department"
+      value={selectedDepartment}
+      onChange={(event) => {
+        setSelectedDepartment(event.target.value);
+        setEmployee(null);
+        setFormError("");
+      }}
+      disabled={loadingDepartments}
+      required
+    >
+      <option value="">
+        {loadingDepartments
+          ? "Loading departments..."
+          : "Select department"}
+      </option>
+
+      {departments.map((department) => (
+        <option
+          key={department._id}
+          value={department.code}
         >
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <input
-                value={employeeId}
-                onChange={(event) => {
-                  setEmployeeId(event.target.value);
-                  setEmployee(null);
-                  setSearchError("");
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    handleEmployeeSearch();
-                  }
-                }}
-                aria-label="Employee ID"
-                aria-invalid={Boolean(searchError)}
-                placeholder="EMP0001"
-                className="field font-mono uppercase placeholder:normal-case placeholder:font-sans"
-              />
-            </div>
+          {department.name}
+        </option>
+      ))}
+    </Select>
 
-            <Button
-              variant="secondary"
-              onClick={handleEmployeeSearch}
-              loading={searching}
-              loadingText="Searching"
-            >
-              <Search size={13} />
-              Search
-            </Button>
-          </div>
+    {departmentError && (
+      <p role="alert" className="text-xs text-red-600">
+        {departmentError}
+      </p>
+    )}
 
-          {searchError && (
-            <p role="alert" className="mt-2 text-xs text-red-600">
-              {searchError}
-            </p>
-          )}
-
-          {employee && (
-            <div className="animate-pop mt-3 rounded-card border border-emerald-200 bg-emerald-50/50 p-3">
-              <div className="mb-2.5 flex items-center gap-2">
-                <Avatar name={employee.name} size={26} />
-                <p className="text-[13px] font-semibold text-ink">
-                  {employee.name}
-                </p>
-                <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700">
-                  <CheckCircle2 size={12} />
-                  Selected
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
-                <Detail label="Employee ID" value={employee.employeeId} />
-                <Detail label="Department" value={employee.department} />
-                <Detail label="Role" value={employee.role} />
-                <Detail label="Phone" value={employee.phone} />
-                <div className="col-span-2">
-                  <Detail label="Email" value={employee.email} />
-                </div>
-              </div>
-            </div>
-          )}
-        </Card>
+    {selectedDepartment && (
+      <EmployeeSearch
+        key={selectedDepartment}
+        label="Search visiting employee"
+        department={selectedDepartment}
+        role="VISITING_EMPLOYEE"
+        value={employee}
+        onChange={setEmployee}
+      />
+    )}
+  </div>
+</Card>
 
         <div className="flex justify-end">
           <Button
@@ -270,7 +264,7 @@ const VisitorRegistrationPage = () => {
             size="lg"
             loading={submitting}
             loadingText="Registering..."
-            disabled={searching || !employee}
+            disabled={submitting || !employee}
           >
             <UserPlus size={14} />
             Register visitor

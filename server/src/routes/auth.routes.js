@@ -7,6 +7,8 @@ const {
   logout,
   me,
   createUser,
+  getUsers,
+  updateUserStatus,
 } = require("../controllers/auth.controller");
 
 const {
@@ -25,5 +27,16 @@ router.post(
   allowRoles("ADMIN"),
   createUser
 );
-
+router.get(
+  "/users",
+  authenticate,
+  allowRoles("ADMIN"),
+  getUsers
+);
+router.patch(
+  "/users/:userId/status",
+  authenticate,
+  allowRoles("ADMIN"),
+  updateUserStatus
+);
 module.exports = router;

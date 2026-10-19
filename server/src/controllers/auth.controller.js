@@ -2,6 +2,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/Users");
+const mongoose = require("mongoose");
 const generateEmployeeId = require("../utils/generateEmployeeId");
 
 const roles = ["ADMIN", "GATE_EMPLOYEE", "EMPLOYEE", "DIRECTOR"];
@@ -162,4 +163,96 @@ try {
 }
 }
 
-module.exports = { login, logout, me, createUser };
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find()
+      .select(
+        "_id employeeId name email phone department role isActive createdAt"
+      )
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    console.error("Get users error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to fetch users",
+    });
+  }
+};
+
+const updateUserStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { isActive } = req.body;
+
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "isActive must be a boolean",
+      });
+    }
+
+    const targetUser = await User.findById(userId);
+
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Admin accounts cannot be deactivated through this endpoint.
+    if (targetUser.role === "ADMIN") {
+      return res.status(403).json({
+        success: false,
+        message: "Admin account status cannot be changed",
+      });
+    }
+
+    targetUser.isActive = isActive;
+    await targetUser.save();
+
+    return res.status(200).json({
+      success: true,
+      message: isActive
+        ? "User activated successfully"
+        : "User deactivated successfully",
+      user: {
+        _id: targetUser._id,
+        employeeId: targetUser.employeeId,
+        name: targetUser.name,
+        role: targetUser.role,
+        isActive: targetUser.isActive,
+      },
+    });
+  } catch (error) {
+    console.error("Update user status error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to update user status",
+    });
+  }
+};
+
+module.exports = {
+  login,
+  logout,
+  me,
+  createUser,
+  getUsers,
+  updateUserStatus
+};
