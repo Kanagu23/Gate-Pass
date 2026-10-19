@@ -114,9 +114,32 @@ const getDashboardAnalytics = async (req, res) => {
       statusDistribution,
     },
   });
+
 };
+
+const getRecentVisitors = async (req, res) => {
+  const visitors = await Visitor.find()
+    .select(
+      "visitorId name visitingPurpose visitingEmployee status createdAt"
+    )
+    .populate(
+      "visitingEmployee",
+      "name employeeId department"
+    )
+    .sort({ createdAt: -1, _id: -1 })
+    .limit(10)
+    .lean();
+
+  return res.status(200).json({
+    success: true,
+    count: visitors.length,
+    visitors,
+  });
+};
+
 
 module.exports = {
   getDashboardStats,
-  getDashboardAnalytics
+  getDashboardAnalytics,
+  getRecentVisitors
 };

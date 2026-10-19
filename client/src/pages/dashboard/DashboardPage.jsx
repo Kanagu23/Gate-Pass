@@ -14,7 +14,13 @@ import {
 } from "lucide-react";
 
 import Card from "../../components/common/Card";
-import { getDashboardStats } from "../../api/dashboard.api";
+import {
+  getDashboardStats,
+  getDashboardAnalytics,
+} from "../../api/dashboard.api";
+
+import VisitorActivityChart from "../../components/dashboard/VisitorActivityChart";
+import VisitorStatusChart from "../../components/dashboard/VisitorStatusChart";
 
 const roleLabels = {
   ADMIN: "Administrator",
@@ -80,28 +86,51 @@ const DashboardPage = ({ role }) => {
   const roleLabel = roleLabels[role] || "User";
   const isAdmin = role === "ADMIN";
 
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(isAdmin);
-  const [error, setError] = useState("");
 
-  const loadStats = useCallback(async () => {
-    if (!isAdmin) return;
+const [stats, setStats] = useState(null);
+const [analytics, setAnalytics] = useState(null);
+const [loading, setLoading] = useState(isAdmin);
+const [error, setError] = useState("");
 
-    try {
-      setLoading(true);
-      setError("");
 
-      const response = await getDashboardStats();
-      setStats(response.stats);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Unable to load dashboard statistics."
-      );
-    } finally {
-      setLoading(false);
+
+const loadStats = useCallback(async () => {
+  if (!isAdmin) return;
+
+  setLoading(true);
+  setError("");
+
+  try {
+    const results = await Promise.allSettled([
+      getDashboardStats(),
+      getDashboardAnalytics(),
+    ]);
+
+    const [statsResult, analyticsResult] = results;
+
+    if (statsResult.status === "fulfilled") {
+      setStats(statsResult.value.stats);
     }
-  }, [isAdmin]);
+
+    if (analyticsResult.status === "fulfilled") {
+      setAnalytics(analyticsResult.value.analytics);
+    }
+
+    if (
+      statsResult.status === "rejected" ||
+      analyticsResult.status === "rejected"
+    ) {
+      setError(
+        "Some dashboard data could not be refreshed. Please try again."
+      );
+    }
+  } catch (err) {
+    setError("Unable to refresh dashboard.");
+  } finally {
+    setLoading(false);
+  }
+}, [isAdmin]);
+
 
   useEffect(() => {
     loadStats();
@@ -129,18 +158,18 @@ const DashboardPage = ({ role }) => {
         </div>
 
         {isAdmin && (
-          <button
-            type="button"
-            onClick={loadStats}
-            disabled={loading}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          >
-            <RefreshCw
-              size={16}
-              className={loading ? "animate-spin" : ""}
-            />
-            Refresh
-          </button>
+        <button
+  type="button"
+  onClick={loadStats}
+  disabled={loading}
+  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+>
+  <RefreshCw
+    size={16}
+    className={loading ? "animate-spin" : ""}
+  />
+  {loading ? "Refreshing..." : "Refresh"}
+</button>
         )}
       </section>
 
@@ -156,35 +185,64 @@ const DashboardPage = ({ role }) => {
             </div>
           )}
 
-          {loading && !stats ? (
-            <div className="flex items-center justify-center gap-3 rounded-md border border-slate-200 bg-white p-12 text-sm text-slate-500">
-              <Loader2 size={19} className="animate-spin" />
-              Loading dashboard statistics...
-            </div>
-          ) : stats ? (
-            <section>
-              <div className="mb-4">
-                <h2 className="text-base font-semibold text-[#10132e]">
-                  Visitor Overview
-                </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Current statistics from MongoDB
-                </p>
-              </div>
+       
+{loading && !stats ? (
+  <div className="flex items-center justify-center gap-3 rounded-md border border-slate-200 bg-white p-12 text-sm text-slate-500">
+    <Loader2 size={19} className="animate-spin" />
+    Loading dashboard statistics...
+  </div>
+) : stats ? (
+  <>
+    {/* Existing statistics cards */}
+    <section>
+      <div className="mb-4">
+        <h2 className="text-base font-semibold text-[#10132e]">
+          Visitor Overview
+        </h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Current statistics from MongoDB
+        </p>
+      </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {STAT_ITEMS.map((item) => (
-                  <StatCard
-                    key={item.key}
-                    label={item.label}
-                    value={stats[item.key]}
-                    icon={item.icon}
-                    iconStyle={item.iconStyle}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {STAT_ITEMS.map((item) => (
+          <StatCard
+            key={item.key}
+            label={item.label}
+            value={stats[item.key]}
+            icon={item.icon}
+            iconStyle={item.iconStyle}
+          />
+        ))}
+      </div>
+    </section>
+
+    {/* Analytics charts */}
+    {analytics && (
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-[#10132e]">
+            Visitor Analytics
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Registration trends and visitor status distribution
+          </p>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <VisitorActivityChart
+            data={analytics.dailyActivity}
+          />
+
+          <VisitorStatusChart
+            data={analytics.statusDistribution}
+          />
+        </div>
+      </section>
+    )}
+  </>
+) : null}
+
         </>
       ) : (
         <Card

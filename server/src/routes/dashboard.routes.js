@@ -9,6 +9,7 @@ const {
 const {
   getDashboardStats,
   getDashboardAnalytics,
+  getRecentVisitors,
 } = require("../controllers/dashboard.controller");
 
 const router = express.Router();
@@ -27,6 +28,12 @@ router.get(
   authenticate,
   allowRoles("ADMIN"),
   getDashboardAnalytics
+);
+router.get(
+  "/recent-visitors",
+  authenticate,
+  allowRoles("ADMIN"),
+  getRecentVisitors
 );
 
 module.exports = router;
