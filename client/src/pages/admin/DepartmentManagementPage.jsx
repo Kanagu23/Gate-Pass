@@ -129,8 +129,8 @@ try {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Department Management"
-        description="Manage organization departments."
+        title="Departments"
+        description="Organise the teams visitors can be routed to."
       />
 
       {error && (

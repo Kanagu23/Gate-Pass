@@ -21,7 +21,8 @@ import {
   getDashboardAnalytics,
   getRecentVisitors,
 } from "../../api/dashboard.api";
-import { navigationByRole, roleLabels } from "../../config/navigation";
+import { useAuth } from "../../context/AuthContext";
+import { quickActionsFor } from "../../config/navigation";
 
 import VisitorActivityChart from "../../components/dashboard/VisitorActivityChart";
 import VisitorStatusChart from "../../components/dashboard/VisitorStatusChart";
@@ -94,10 +95,18 @@ const StatSkeleton = () => (
   </div>
 );
 
+const greeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+};
+
 const DashboardPage = ({ role }) => {
-  const roleLabel = roleLabels[role] || "User";
+  const { user } = useAuth();
   const isAdmin = role === "ADMIN";
-  const actions = (navigationByRole[role] || []).filter((item) => item.hint);
+  const actions = quickActionsFor(role);
+  const firstName = (user?.name || user?.employeeName || "").split(" ")[0];
 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(isAdmin);
@@ -142,11 +151,11 @@ setError("");
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <PageHeader
-        title={`${roleLabel} dashboard`}
+        title={firstName ? `${greeting()}, ${firstName}` : greeting()}
         description={
           isAdmin
-            ? "Visitor activity and access status at a glance."
-            : "Your Gate Pass workspace."
+            ? "Here's what's happening at the gate today."
+            : "Pick up where you left off."
         }
         actions={
           isAdmin && (

@@ -5,6 +5,13 @@ const User = require("../models/Users");
 const generateVisitorId = require("../utils/generateVisitorId");
 const { encryptPassToken ,decryptPassToken} = require("../utils/passEncryption");
 const { generatePassToken, hashPassToken } = require("../utils/passToken");
+const {
+  hasPermission,
+} = require("../middleware/permission.middleware");
+
+const {
+  PERMISSIONS,
+} = require("../constants/permissions");
 
 const validPurposes = ["Audit", "Relative", "Suppliers", "Others"];
 
@@ -25,12 +32,18 @@ const registerVisitor = async (req, res) => {
     } = req.body;
 
     // Only gate employees and admins can register visitors.
-    if (!["GATE_EMPLOYEE", "ADMIN"].includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not allowed to register visitors",
-      });
-    }
+   
+const canRegister =
+  ["ADMIN", "GATE_EMPLOYEE"].includes(req.user.role) ||
+  hasPermission(req.user, PERMISSIONS.VISITOR_REGISTER);
+
+if (!canRegister) {
+  return res.status(403).json({
+    success: false,
+    message: "You are not allowed to register visitors",
+  });
+}
+
 
     // Validate required fields.
     if (

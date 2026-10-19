@@ -92,7 +92,9 @@ const CreateUserPage = () => {
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <PageHeader
-        title="Create user"
+        backTo="/admin/users"
+        backLabel="Users"
+        title="New user"
         description="Create an internal Gate Pass account."
       />
 

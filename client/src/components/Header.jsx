@@ -1,14 +1,26 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  ChevronDown,
+  LogOut,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { roleLabels, titleForPath } from "../config/navigation";
+import { roleLabels } from "../config/navigation";
 import Avatar from "./common/Avatar";
 import Spinner from "./common/Spinner";
 
-const Header = ({ onMenuClick }) => {
+const today = () =>
+  new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+const Header = ({ collapsed = false, onMenuClick, onToggleCollapse }) => {
   const { user, logout } = useAuth();
-  const { pathname } = useLocation();
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -38,6 +50,7 @@ const Header = ({ onMenuClick }) => {
   return (
     <header className="no-print sticky top-0 z-30 flex h-12 items-center justify-between border-b border-line bg-white/85 px-4 backdrop-blur-md sm:px-5 lg:px-6">
       <div className="flex min-w-0 items-center gap-2">
+        {/* Mobile: open drawer */}
         <button
           type="button"
           onClick={onMenuClick}
@@ -47,9 +60,22 @@ const Header = ({ onMenuClick }) => {
           <Menu size={18} />
         </button>
 
-        <h2 className="truncate text-[13px] font-semibold text-ink">
-          {titleForPath(pathname)}
-        </h2>
+        {/* Desktop: collapse / expand sidebar */}
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-pressed={collapsed}
+          className="-ml-1.5 hidden rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 md:inline-flex"
+        >
+          {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+        </button>
+
+        {/* Context, not a title: the page heading lives in the page itself */}
+        <p className="truncate text-xs text-slate-500">
+          <span className="font-semibold text-slate-700 md:hidden">Gate Pass</span>
+          <span className="hidden md:inline">{today()}</span>
+        </p>
       </div>
 
       <div className="relative">

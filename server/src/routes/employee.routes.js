@@ -5,6 +5,13 @@ const {
   searchEmployee,
   searchEmployees,
 } = require("../controllers/employee.controller");
+const {
+  allowRoleOrPermission,
+} = require("../middleware/permission.middleware");
+
+const {
+  PERMISSIONS,
+} = require("../constants/permissions");
 
 const {
   authenticate,
@@ -20,10 +27,15 @@ router.get(
   searchEmployee
 );
 
+
 router.get(
   "/search",
   authenticate,
-  allowRoles("ADMIN", "GATE_EMPLOYEE"),
+  allowRoleOrPermission(
+    ["ADMIN", "GATE_EMPLOYEE"],
+    PERMISSIONS.VISITOR_REGISTER
+  ),
   searchEmployees
 );
+
 module.exports = router;

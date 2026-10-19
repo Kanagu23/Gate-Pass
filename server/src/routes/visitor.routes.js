@@ -15,17 +15,29 @@ const {
   getVisitorPass,
   getVisitors
 } = require("../controllers/visitor.controller");
+const {
+  allowRoleOrPermission,
+} = require("../middleware/permission.middleware");
+
+const {
+  PERMISSIONS,
+} = require("../constants/permissions");
 
 const router = express.Router();
 
 // Register a new visitor
 // Only Admin and Gate Employee can access this API.
+
 router.post(
   "/",
   authenticate,
-  allowRoles("ADMIN", "GATE_EMPLOYEE"),
+  allowRoleOrPermission(
+    ["ADMIN", "GATE_EMPLOYEE"],
+    PERMISSIONS.VISITOR_REGISTER
+  ),
   registerVisitor
 );
+
 
 router.get(
   "/pending",

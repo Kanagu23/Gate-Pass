@@ -181,9 +181,7 @@ const savePermissions = async () => {
     <div className="space-y-4">
         
       <PageHeader
-        backTo="/admin"
-        backLabel="Dashboard"
-        title="User management"
+        title="Users"
         description="View and manage internal Gate Pass accounts."
       />
 
