@@ -16,15 +16,48 @@ import Card from "../../components/common/Card";
 import PageHeader from "../../components/common/PageHeader";
 import { Skeleton } from "../../components/common/Skeleton";
 import useCountUp from "../../hooks/useCountUp";
-import { getDashboardStats } from "../../api/dashboard.api";
+import {
+  getDashboardStats,
+  getDashboardAnalytics,
+  getRecentVisitors,
+} from "../../api/dashboard.api";
 import { navigationByRole, roleLabels } from "../../config/navigation";
 
+import VisitorActivityChart from "../../components/dashboard/VisitorActivityChart";
+import VisitorStatusChart from "../../components/dashboard/VisitorStatusChart";
+import RecentVisitorsTable from "../../components/dashboard/RecentVisitorsTable";
+
 const STAT_ITEMS = [
-  { key: "totalVisitors", label: "Total visitors", icon: Users, tone: "bg-blue-50 text-blue-600" },
-  { key: "currentlyInside", label: "Currently inside", icon: UserCheck, tone: "bg-emerald-50 text-emerald-600" },
-  { key: "pendingApprovals", label: "Pending approvals", icon: Clock3, tone: "bg-amber-50 text-amber-600" },
-  { key: "checkedOut", label: "Checked out", icon: LogOut, tone: "bg-slate-100 text-slate-500" },
-  { key: "rejected", label: "Rejected", icon: UserX, tone: "bg-red-50 text-red-500" },
+  {
+    key: "totalVisitors",
+    label: "Total visitors",
+    icon: Users,
+    tone: "bg-blue-50 text-blue-600",
+  },
+  {
+    key: "currentlyInside",
+    label: "Currently inside",
+    icon: UserCheck,
+    tone: "bg-emerald-50 text-emerald-600",
+  },
+  {
+    key: "pendingApprovals",
+    label: "Pending approvals",
+    icon: Clock3,
+    tone: "bg-amber-50 text-amber-600",
+  },
+  {
+    key: "checkedOut",
+    label: "Checked out",
+    icon: LogOut,
+    tone: "bg-slate-100 text-slate-500",
+  },
+  {
+    key: "rejected",
+    label: "Rejected",
+    icon: UserX,
+    tone: "bg-red-50 text-red-500",
+  },
 ];
 
 const StatCard = ({ label, value, icon: Icon, tone, index }) => {
@@ -68,24 +101,39 @@ const DashboardPage = ({ role }) => {
 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(isAdmin);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const loadStats = useCallback(async () => {
-    if (!isAdmin) return;
+  const [analytics, setAnalytics] = useState(null);
+const [recentVisitors, setRecentVisitors] = useState([]);
 
-    try {
-      setLoading(true);
-      setError("");
-      const response = await getDashboardStats();
-      setStats(response.stats);
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Unable to load dashboard statistics."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [isAdmin]);
+const loadStats = useCallback(async () => {
+  if (!isAdmin) return;
+
+  try {
+   setRefreshing(true);
+setError("");
+    const [statsResponse, analyticsResponse, recentResponse] =
+      await Promise.all([
+        getDashboardStats(),
+        getDashboardAnalytics(),
+        getRecentVisitors(),
+      ]);
+
+    setStats(statsResponse.stats);
+    setAnalytics(analyticsResponse.analytics);
+    setRecentVisitors(recentResponse.visitors || []);
+  } catch (err) {
+    setError(
+      err.response?.data?.message ||
+        "Unable to load dashboard information."
+    );
+  } finally {
+  setLoading(false);
+  setRefreshing(false);
+}
+}, [isAdmin]);
+
 
   useEffect(() => {
     loadStats();
@@ -102,15 +150,18 @@ const DashboardPage = ({ role }) => {
         }
         actions={
           isAdmin && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={loadStats}
-              disabled={loading}
-            >
-              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
-              Refresh
-            </Button>
+           <Button
+  variant="secondary"
+  size="sm"
+  onClick={loadStats}
+  disabled={loading || refreshing}
+>
+  <RefreshCw
+    size={13}
+    className={refreshing ? "animate-spin" : ""}
+  />
+  {refreshing ? "Refreshing..." : "Refresh"}
+</Button>
           )
         }
       />
@@ -120,14 +171,14 @@ const DashboardPage = ({ role }) => {
           {error && <Alert tone="error">{error}</Alert>}
 
           {loading && !stats ? (
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {STAT_ITEMS.map((item) => (
                 <StatSkeleton key={item.key} />
               ))}
             </div>
           ) : (
             stats && (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 {STAT_ITEMS.map((item, index) => (
                   <StatCard
                     key={item.key}
@@ -162,7 +213,9 @@ const DashboardPage = ({ role }) => {
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium text-slate-800">{label}</p>
+                  <p className="text-[13px] font-medium text-slate-800">
+                    {label}
+                  </p>
                   <p className="truncate text-xs text-slate-500">{hint}</p>
                 </div>
 
@@ -175,6 +228,28 @@ const DashboardPage = ({ role }) => {
           </div>
         </Card>
       )}
+      
+{isAdmin && analytics && (
+<section
+  aria-label="Visitor analytics"
+  className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+>
+  <VisitorActivityChart
+    data={analytics.dailyActivity || []}
+  />
+
+  <VisitorStatusChart
+    data={analytics.statusDistribution || []}
+  />
+</section>
+)}
+
+{isAdmin && (
+  <section aria-label="Recent visitors">
+    <RecentVisitorsTable visitors={recentVisitors} />
+  </section>
+)}
+
     </div>
   );
 };

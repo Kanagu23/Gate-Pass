@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import Card from "../common/Card";
 
 const STATUS_CONFIG = {
   PENDING: {
@@ -48,16 +49,11 @@ const VisitorStatusChart = ({ data = [] }) => {
   );
 
   return (
-    <section className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-6">
-        <h3 className="text-base font-semibold text-[#10132e]">
-          Visitor Status
-        </h3>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Distribution of visitor requests
-        </p>
-      </div>
+    <Card
+  title="Visitor status"
+  description="Distribution of visitor requests"
+  className="rise"
+>
 
       {total === 0 ? (
         <div className="flex h-72 items-center justify-center text-sm text-slate-500">
@@ -110,7 +106,7 @@ const VisitorStatusChart = ({ data = [] }) => {
           </ResponsiveContainer>
         </div>
       )}
-    </section>
+    </Card>
   );
 };
 

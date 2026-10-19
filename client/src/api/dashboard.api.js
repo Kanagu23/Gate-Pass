@@ -14,3 +14,10 @@ export const getDashboardAnalytics = async () => {
 
   return response.data;
 };
+
+
+export const getRecentVisitors = async () => {
+  const response = await api.get("/dashboard/recent-visitors");
+
+  return response.data;
+};

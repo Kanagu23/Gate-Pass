@@ -11,7 +11,6 @@ import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import { TableSkeleton } from "../../components/common/Skeleton";
 import { buttonStyles } from "../../components/common/buttonStyles";
-import Avatar from "../../components/common/Avatar";
 import Card from "../../components/common/Card";
 
 const STATUS_TABS = [

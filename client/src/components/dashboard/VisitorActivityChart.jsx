@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import Card from "../common/Card";
 
 const VisitorActivityChart = ({ data = [] }) => {
   const chartData = data.map((item) => ({
@@ -23,16 +24,11 @@ const VisitorActivityChart = ({ data = [] }) => {
   }));
 
   return (
-    <section className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-6">
-        <h3 className="text-base font-semibold text-[#10132e]">
-          Visitor Activity
-        </h3>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Visitor registrations over the last 7 days
-        </p>
-      </div>
+    <Card
+  title="Visitor activity"
+  description="Visitor registrations over the last 7 days"
+  className="rise"
+>
 
       {chartData.length === 0 ? (
         <div className="flex h-72 items-center justify-center text-sm text-slate-500">
@@ -99,7 +95,7 @@ const VisitorActivityChart = ({ data = [] }) => {
           </ResponsiveContainer>
         </div>
       )}
-    </section>
+    </Card>
   );
 };
 
