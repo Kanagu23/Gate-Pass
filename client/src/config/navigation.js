@@ -7,7 +7,7 @@ import {
   Users,
 } from "lucide-react";
 
-// Default dashboard route for each role
+// Default home route for each role
 export const roleHome = {
   ADMIN: "/admin",
   GATE_EMPLOYEE: "/gate",
@@ -15,7 +15,7 @@ export const roleHome = {
   DIRECTOR: "/director",
 };
 
-// Display labels for user roles
+// Display names for roles
 export const roleLabels = {
   ADMIN: "Administrator",
   GATE_EMPLOYEE: "Gate Employee",
@@ -23,7 +23,7 @@ export const roleLabels = {
   DIRECTOR: "Director",
 };
 
-// Navigation for Admin and Gate Employee
+// Admin and Gate Employee navigation
 const frontDesk = (base) => [
   {
     label: "Dashboard",
@@ -49,7 +49,7 @@ const frontDesk = (base) => [
   },
 ];
 
-// Navigation for Employee and Director
+// Employee and Director navigation
 const approver = (base) => [
   {
     label: "Dashboard",
@@ -64,7 +64,7 @@ const approver = (base) => [
   },
 ];
 
-// Default role-based navigation
+// Existing role-based navigation
 export const navigationByRole = {
   ADMIN: frontDesk("/admin"),
   GATE_EMPLOYEE: frontDesk("/gate"),
@@ -72,63 +72,71 @@ export const navigationByRole = {
   DIRECTOR: approver("/director"),
 };
 
-// Build navigation based on role and custom permissions
+// Build grouped navigation for the Sidebar
 export const getNavigationForUser = (user) => {
   if (!user) return [];
 
-  const groups = navigationByRole[user.role] || [];
+  const items = navigationByRole[user.role] || [];
 
   const canRegister =
     ["EMPLOYEE", "DIRECTOR"].includes(user.role) &&
     user.permissions?.includes("visitor.register");
 
-  if (!canRegister) return groups;
-
-  return [
-    ...groups,
-    {
-      label: "Visitor Registration",
-      items: [
+  const menuItems = canRegister
+    ? [
+        ...items,
         {
           label: "Register Visitor",
           path: "/visitor/register",
           icon: UserPlus,
           hint: "Create a new visitor request",
         },
-      ],
+      ]
+    : items;
+
+  return [
+    {
+      label: "Main Menu",
+      items: menuItems,
     },
   ];
 };
 
-// Resolve page title from pathname
+// Dashboard quick actions
+export const quickActionsFor = (role) => {
+  return (navigationByRole[role] || []).filter(
+    (item) => item.hint
+  );
+};
+
+// Determine whether a menu item is active
+export const isItemActive = (pathname, itemPath) => {
+  if (!pathname || !itemPath) return false;
+
+  if (pathname === itemPath) return true;
+
+  // Dashboard should only highlight on exact match
+  if (Object.values(roleHome).includes(itemPath)) {
+    return false;
+  }
+
+  return pathname.startsWith(`${itemPath}/`);
+};
+
+// Resolve header title from pathname
 export const titleForPath = (pathname) => {
-  // Permission-based registration page
   if (pathname === "/visitor/register") {
     return "Register Visitor";
   }
 
-  // Visitor pass details page
   if (/\/visitors\/[^/]+\/pass$/.test(pathname)) {
     return "Visitor Pass";
   }
 
-  // Existing role-based navigation titles
-  const all = Object.values(navigationByRole).flat();
+  const allItems = Object.values(navigationByRole).flat();
 
   return (
-    all.find((item) => item.path === pathname)?.label ||
-    "Workspace"
-  );
-};
-
-export const quickActionsFor = (role) => {
-  return navigationByRole[role] || [];
-};  
-export const isItemActive = (pathname, itemPath) => {
-  if (!pathname || !itemPath) return false;
-
-  return (
-    pathname === itemPath ||
-    pathname.startsWith(`${itemPath}/`)
+    allItems.find((item) => item.path === pathname)
+      ?.label || "Workspace"
   );
 };
