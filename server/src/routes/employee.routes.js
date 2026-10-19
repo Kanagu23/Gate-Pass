@@ -3,6 +3,7 @@ const express = require("express");
 
 const {
   searchEmployee,
+  searchEmployees,
 } = require("../controllers/employee.controller");
 
 const {
@@ -19,4 +20,10 @@ router.get(
   searchEmployee
 );
 
+router.get(
+  "/search",
+  authenticate,
+  allowRoles("ADMIN", "GATE_EMPLOYEE"),
+  searchEmployees
+);
 module.exports = router;

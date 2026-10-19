@@ -15,7 +15,8 @@ import VisitorRegistrationPage from "./pages/visitor/VisitorRegistrationPage";
 import VisitorApprovalPage from "./pages/visitor/VisitorApprovalPage";
 import VisitorListPage from "./pages/visitor/VisitorListPage";
 import VisitorCheckoutPage from "./pages/visitor/VisitorCheckoutPage";
-
+import CreateUserPage from "./pages/admin/CreateUserPage";
+import DepartmentManagementPage from "./pages/admin/DepartmentManagementPage";
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
@@ -54,6 +55,11 @@ const AppRoutes = () => {
             path="/admin/visitors/check-out"
             element={<VisitorCheckoutPage />}
           />
+          <Route
+            path="/admin/departments"
+            element={<DepartmentManagementPage />}
+          />
+          <Route path="/admin/users/create" element={<CreateUserPage />} />
         </Route>
       </Route>
 
