@@ -1,25 +1,33 @@
-
 import { useCallback, useEffect, useState } from "react";
-import {
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-  ClipboardCheck,
-  AlertCircle,
-  Loader2,
-  Inbox,
-} from "lucide-react";
+import { Check, ClipboardCheck, RefreshCw, X } from "lucide-react";
 
 import {
-  getPendingVisitors,
   approveVisitor,
+  getPendingVisitors,
   rejectVisitor,
 } from "../../api/approval.api";
+import Alert from "../../components/common/Alert";
+import Avatar from "../../components/common/Avatar";
+import Button from "../../components/common/Button";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import EmptyState from "../../components/common/EmptyState";
+import PageHeader from "../../components/common/PageHeader";
+import StatusBadge from "../../components/common/StatusBadge";
+import { TableSkeleton } from "../../components/common/Skeleton";
+
+const formatDate = (value) =>
+  value
+    ? new Date(value).toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "—";
 
 const VisitorApprovalPage = () => {
   const [visitors, setVisitors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
+  const [pending, setPending] = useState(null); // { visitor, action }
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -27,13 +35,11 @@ const VisitorApprovalPage = () => {
     try {
       setLoading(true);
       setError("");
-
       const response = await getPendingVisitors();
       setVisitors(response.visitors || []);
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Unable to load pending visitors."
+        err.response?.data?.message || "Unable to load pending visitors."
       );
     } finally {
       setLoading(false);
@@ -44,16 +50,11 @@ const VisitorApprovalPage = () => {
     loadVisitors();
   }, [loadVisitors]);
 
-  const handleDecision = async (visitor, action) => {
+  const confirmDecision = async () => {
+    if (!pending) return;
+
+    const { visitor, action } = pending;
     const isApprove = action === "approve";
-
-    const confirmed = window.confirm(
-      `Are you sure you want to ${
-        isApprove ? "approve" : "reject"
-      } ${visitor.name}?`
-    );
-
-    if (!confirmed) return;
 
     try {
       setProcessingId(visitor._id);
@@ -68,180 +69,143 @@ const VisitorApprovalPage = () => {
         response.message ||
           `Visitor ${isApprove ? "approved" : "rejected"} successfully.`
       );
-
+      setPending(null);
       await loadVisitors();
     } catch (err) {
+      setPending(null);
       setError(
-        err.response?.data?.message ||
-          "Unable to process visitor request."
+        err.response?.data?.message || "Unable to process visitor request."
       );
     } finally {
       setProcessingId(null);
     }
   };
 
+  const isApprove = pending?.action === "approve";
+
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-[#4169e8]">
-            <ClipboardCheck size={19} />
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Visitor Management
-            </span>
-          </div>
-
-          <h1 className="text-2xl font-semibold text-[#10132e]">
-            Pending Approvals
-          </h1>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Review visitor requests assigned to you.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={loadVisitors}
-          disabled={loading || Boolean(processingId)}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-4">
+      <PageHeader
+        title="Pending approvals"
+        description="Review visitor requests assigned to you."
+        actions={
+          <Button
+            variant="secondary"
+            onClick={loadVisitors}
+            disabled={loading || Boolean(processingId)}
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </Button>
+        }
+      />
 
       {message && (
-        <div
-          role="status"
-          className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-800"
-        >
-          <CheckCircle2 size={18} />
+        <Alert tone="success" onDismiss={() => setMessage("")}>
           {message}
-        </div>
+        </Alert>
       )}
-
       {error && (
-        <div
-          role="alert"
-          className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-        >
-          <AlertCircle size={18} />
+        <Alert tone="error" onDismiss={() => setError("")}>
           {error}
-        </div>
+        </Alert>
       )}
 
-      <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-sm font-semibold text-[#10132e]">
-            Visitor Requests
+      <div
+        className="rise overflow-hidden rounded-card border border-line bg-white shadow-card"
+        style={{ "--i": 1 }}
+      >
+        <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+          <h2 className="text-[13px] font-semibold text-ink">
+            Visitor requests
           </h2>
-
-          <span className="text-xs font-medium text-slate-500">
-            {visitors.length} Pending
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+            {visitors.length} pending
           </span>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 p-12 text-sm text-slate-500">
-            <Loader2 size={18} className="animate-spin" />
-            Loading visitor requests...
-          </div>
+        {loading && visitors.length === 0 ? (
+          <TableSkeleton rows={4} />
         ) : visitors.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <Inbox size={34} className="mb-4 text-slate-400" />
-
-            <h3 className="font-semibold text-slate-800">
-              No pending approvals
-            </h3>
-
-            <p className="mt-2 text-sm text-slate-500">
-              New visitor requests assigned to you will appear here.
-            </p>
-          </div>
+          <EmptyState
+            icon={ClipboardCheck}
+            title="You're all caught up"
+            description="New visitor requests assigned to you will appear here."
+          />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[850px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <div
+            className={`overflow-x-auto transition-opacity duration-150 ${
+              loading ? "opacity-60" : ""
+            }`}
+          >
+            <table className="tbl min-w-[780px]">
+              <thead>
                 <tr>
-                  <th className="px-5 py-4 font-semibold">Visitor</th>
-                  <th className="px-5 py-4 font-semibold">Contact</th>
-                  <th className="px-5 py-4 font-semibold">Purpose</th>
-                  <th className="px-5 py-4 font-semibold">Requested</th>
-                  <th className="px-5 py-4 font-semibold">Status</th>
-                  <th className="px-5 py-4 text-right font-semibold">Actions</th>
+                  <th>Visitor</th>
+                  <th>Contact</th>
+                  <th>Purpose</th>
+                  <th>Requested</th>
+                  <th>Status</th>
+                  <th className="text-right">Decision</th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {visitors.map((visitor) => (
-                  <tr key={visitor._id} className="hover:bg-slate-50/70">
-                    <td className="px-5 py-4">
-                      <p className="font-semibold text-[#10132e]">
-                        {visitor.name}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {visitor.visitorId}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {visitor.organization || "—"}
-                      </p>
+                  <tr key={visitor._id}>
+                    <td>
+                      <div className="flex items-center gap-2.5">
+                        <Avatar name={visitor.name} />
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-ink">
+                            {visitor.name}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            <span className="font-mono">{visitor.visitorId}</span>
+                            {visitor.organization && ` · ${visitor.organization}`}
+                          </p>
+                        </div>
+                      </div>
                     </td>
 
-                    <td className="px-5 py-4 text-slate-600">
+                    <td className="text-slate-600">
                       <p>{visitor.mobile}</p>
-                      <p className="mt-1 text-xs">
+                      <p className="text-xs text-slate-400">
                         {visitor.email || "—"}
                       </p>
                     </td>
 
-                    <td className="px-5 py-4 text-slate-700">
-                      {visitor.visitingPurpose}
+                    <td className="text-slate-600">{visitor.visitingPurpose}</td>
+
+                    <td className="whitespace-nowrap text-xs text-slate-500">
+                      {formatDate(visitor.createdAt)}
                     </td>
 
-                    <td className="px-5 py-4 text-slate-600">
-                      {visitor.createdAt
-                        ? new Date(visitor.createdAt).toLocaleString(
-                            "en-IN",
-                            {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            }
-                          )
-                        : "—"}
+                    <td>
+                      <StatusBadge status={visitor.status} />
                     </td>
 
-                    <td className="px-5 py-4">
-                      <span className="inline-flex rounded-sm bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                        {visitor.status}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleDecision(visitor, "approve")}
+                    <td>
+                      <div className="flex justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="success"
                           disabled={Boolean(processingId)}
-                          className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                          onClick={() => setPending({ visitor, action: "approve" })}
                         >
-                          {processingId === visitor._id ? (
-                            <Loader2 size={14} className="animate-spin" />
-                          ) : (
-                            <CheckCircle2 size={14} />
-                          )}
+                          <Check size={12} strokeWidth={2.5} />
                           Approve
-                        </button>
+                        </Button>
 
-                        <button
-                          type="button"
-                          onClick={() => handleDecision(visitor, "reject")}
+                        <Button
+                          size="sm"
+                          variant="danger-outline"
                           disabled={Boolean(processingId)}
-                          className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          onClick={() => setPending({ visitor, action: "reject" })}
                         >
-                          <XCircle size={14} />
+                          <X size={12} strokeWidth={2.5} />
                           Reject
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -251,6 +215,23 @@ const VisitorApprovalPage = () => {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pending)}
+        title={isApprove ? "Approve visitor?" : "Reject visitor?"}
+        message={
+          pending
+            ? `${pending.visitor.name} (${pending.visitor.visitorId}) will be ${
+                isApprove ? "approved" : "rejected"
+              }.`
+            : ""
+        }
+        confirmLabel={isApprove ? "Approve" : "Reject"}
+        confirmVariant={isApprove ? "success" : "danger"}
+        loading={Boolean(processingId)}
+        onConfirm={confirmDecision}
+        onCancel={() => setPending(null)}
+      />
     </div>
   );
 };

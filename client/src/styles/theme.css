@@ -1,47 +1,55 @@
+/* ------------------------------------------------------------------
+   Gate Pass design tokens
+   Compact, neutral, one accent. Tailwind v4 exposes these as utilities
+   (bg-brand, text-ink, border-line, rounded-card, ...).
+------------------------------------------------------------------- */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
 
-:root {
   /* Brand */
-  --color-brand-navy: #10132e;
-  --color-brand-primary: #4169e8;
-  --color-brand-primary-hover: #3157d5;
+  --color-ink: #10132e;
+  --color-brand: #4169e8;
+  --color-brand-hover: #3558d4;
+  --color-brand-soft: #eef2ff;
+  --color-brand-ring: rgba(65, 105, 232, 0.18);
 
   /* Surfaces */
-  --color-app-bg: #eef0f5;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f5f7fb;
+  --color-canvas: #f6f7fb;
+  --color-line: #e6e9f1;
+  --color-line-strong: #d5dae6;
 
-  /* Typography */
-  --color-text-primary: #171b2b;
-  --color-text-secondary: #64748b;
-  --color-text-muted: #94a3b8;
+  /* Radius: deliberately small */
+  --radius-control: 6px;
+  --radius-card: 8px;
 
-  /* Borders and focus */
-  --color-border: #dce1ea;
-  --color-focus: rgba(65, 105, 232, 0.2);
-
-  /* Status */
-  --color-success: #15803d;
-  --color-success-bg: #dcfce7;
-  --color-warning: #a16207;
-  --color-warning-bg: #fef3c7;
-  --color-danger: #b91c1c;
-  --color-danger-bg: #fee2e2;
-  --color-info: #1d4ed8;
-  --color-info-bg: #dbeafe;
-
-  /* Deliberately restrained corner radius */
-  --radius-control: 7px;
-  --radius-button: 7px;
-  --radius-card: 10px;
-  --radius-panel: 16px;
-  --radius-pill: 999px;
-
-  /* Subtle elevation */
-  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.04);
-  --shadow-hover: 0 5px 14px rgba(15, 23, 42, 0.08);
+  /* Elevation: barely there */
+  --shadow-card: 0 1px 2px rgba(16, 19, 46, 0.04);
+  --shadow-pop: 0 8px 24px -4px rgba(16, 19, 46, 0.14),
+    0 0 0 1px rgba(16, 19, 46, 0.05);
 
   /* Motion */
-  --motion-fast: 150ms;
-  --motion-normal: 220ms;
-  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+  --animate-rise: rise 220ms var(--ease-out) both;
+  --animate-pop: pop 140ms var(--ease-out) both;
+  --animate-fade: fade 160ms ease-out both;
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(-3px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes shimmer {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.55; }
+  }
 }

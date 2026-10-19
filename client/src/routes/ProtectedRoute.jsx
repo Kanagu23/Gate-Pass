@@ -1,16 +1,13 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import PageLoader from "../components/common/PageLoader";
 
-const ProtectedRoute = ({allowedRoles}) => {
+const ProtectedRoute = ({ allowedRoles }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading)
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-slate-600">Checking your session...</p>
-      </div>
-    );
+  if (loading) return <PageLoader label="Checking your session..." />;
+
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
@@ -22,4 +19,4 @@ const ProtectedRoute = ({allowedRoles}) => {
   return <Outlet />;
 };
 
-export default ProtectedRoute
+export default ProtectedRoute;

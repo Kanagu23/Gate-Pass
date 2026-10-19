@@ -1,20 +1,20 @@
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  ArrowLeft,
-  Search,
-  UserPlus,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-} from "lucide-react";
+import { CheckCircle2, Search, UserPlus } from "lucide-react";
 
 import {
   registerVisitor,
   searchVisitingEmployee,
 } from "../../api/visitor.api";
 import { useAuth } from "../../context/AuthContext";
+import Alert from "../../components/common/Alert";
+import Avatar from "../../components/common/Avatar";
+import Button from "../../components/common/Button";
+import Card from "../../components/common/Card";
+import Input from "../../components/common/Input";
+import PageHeader from "../../components/common/PageHeader";
+import Select from "../../components/common/Select";
+import Textarea from "../../components/common/Textarea";
+
 const initialForm = {
   name: "",
   mobile: "",
@@ -28,23 +28,13 @@ const initialForm = {
   validationHours: 24,
 };
 
-const InputField = ({
-  label,
-  required = false,
-  ...props
-}) => (
-  <label className="block space-y-2">
-    <span className="text-sm font-medium text-slate-700">
-      {label}
-      {required && <span className="ml-1 text-red-500">*</span>}
-    </span>
-
-    <input
-      required={required}
-      className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#4169e8] focus:ring-2 focus:ring-blue-100"
-      {...props}
-    />
-  </label>
+const Detail = ({ label, value }) => (
+  <div className="min-w-0">
+    <p className="text-[11px] text-slate-500">{label}</p>
+    <p className="truncate text-[13px] font-medium text-slate-800">
+      {value || "—"}
+    </p>
+  </div>
 );
 
 const VisitorRegistrationPage = () => {
@@ -60,16 +50,11 @@ const VisitorRegistrationPage = () => {
   const [success, setSuccess] = useState(null);
   const { user } = useAuth();
 
-const dashboardPath =
-  user?.role === "ADMIN" ? "/admin" : "/gate";
+  const dashboardPath = user?.role === "ADMIN" ? "/admin" : "/gate";
 
   const updateField = (event) => {
     const { name, value } = event.target;
-
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    setForm((previous) => ({ ...previous, [name]: value }));
   };
 
   const handleEmployeeSearch = async () => {
@@ -87,13 +72,9 @@ const dashboardPath =
       const response = await searchVisitingEmployee(
         employeeId.trim().toUpperCase()
       );
-
       setEmployee(response.employee);
     } catch (error) {
-      setSearchError(
-        error.response?.data?.message ||
-          "Unable to find employee."
-      );
+      setSearchError(error.response?.data?.message || "Unable to find employee.");
     } finally {
       setSearching(false);
     }
@@ -124,6 +105,7 @@ const dashboardPath =
       setForm(initialForm);
       setEmployeeId("");
       setEmployee(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setFormError(
         error.response?.data?.message ||
@@ -135,249 +117,168 @@ const dashboardPath =
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-<Link
-  to={dashboardPath}
-  className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition-colors hover:text-[#4169e8]"
->
-  <ArrowLeft size={17} />
-  Back to Dashboard
-</Link>
-
-      <div className="border-b border-slate-200 pb-5">
-        <div className="mb-2 flex items-center gap-2 text-[#4169e8]">
-          <UserPlus size={19} />
-          <span className="text-xs font-semibold uppercase tracking-wider">
-            Visitor Management
-          </span>
-        </div>
-
-        <h1 className="text-2xl font-semibold text-[#10132e]">
-          Register Visitor
-        </h1>
-
-        <p className="mt-2 text-sm text-slate-500">
-          Register a visitor and send the request to the
-          visiting employee for approval.
-        </p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-4">
+      <PageHeader
+        backTo={dashboardPath}
+        backLabel="Dashboard"
+        title="Register visitor"
+        description="Create a visitor request and send it to the visiting employee for approval."
+      />
 
       {success && (
-        <div
-          role="status"
-          className="rounded-md border border-green-200 bg-green-50 p-4"
+        <Alert
+          tone="success"
+          title="Visitor registered"
+          onDismiss={() => setSuccess(null)}
         >
-          <div className="flex items-center gap-2 font-semibold text-green-800">
-            <CheckCircle2 size={19} />
-            Visitor registered successfully
-          </div>
-
-          <p className="mt-2 text-sm text-green-700">
-            Visitor ID: {success.visitorId}
-          </p>
-
-          <p className="mt-1 text-sm text-green-700">
-            Status: {success.status}. Waiting for employee approval.
-          </p>
-        </div>
+          ID <span className="font-mono font-semibold">{success.visitorId}</span>{" "}
+          · {success.status}. Waiting for employee approval.
+        </Alert>
       )}
 
       {formError && (
-        <div
-          role="alert"
-          className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-        >
-          <AlertCircle size={18} />
+        <Alert tone="error" onDismiss={() => setFormError("")}>
           {formError}
-        </div>
+        </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <section className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-5 text-base font-semibold text-[#10132e]">
-            Visitor Information
-          </h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Card title="Visitor information" className="rise" style={{ "--i": 1 }}>
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <Input id="name" name="name" label="Full name" value={form.name} onChange={updateField} required />
+            <Input id="mobile" name="mobile" label="Mobile number" type="tel" value={form.mobile} onChange={updateField} required />
+            <Input id="email" name="email" label="Email address" type="email" value={form.email} onChange={updateField} />
+            <Input id="organization" name="organization" label="Organization" value={form.organization} onChange={updateField} />
+            <Input id="idProofNo" name="idProofNo" label="ID proof number" value={form.idProofNo} onChange={updateField} />
+            <Input id="address" name="address" label="Address" value={form.address} onChange={updateField} />
 
-          <div className="grid gap-5 md:grid-cols-2">
-            <InputField
-              label="Full Name"
-              name="name"
-              value={form.name}
+            <Select
+              id="visitingPurpose"
+              name="visitingPurpose"
+              label="Visiting purpose"
+              value={form.visitingPurpose}
               onChange={updateField}
               required
-            />
+            >
+              <option value="">Select purpose</option>
+              <option value="Audit">Audit</option>
+              <option value="Relative">Relative</option>
+              <option value="Suppliers">Suppliers</option>
+              <option value="Others">Others</option>
+            </Select>
 
-            <InputField
-              label="Mobile Number"
-              name="mobile"
-              type="tel"
-              value={form.mobile}
-              onChange={updateField}
-              required
-            />
-
-            <InputField
-              label="Email Address"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={updateField}
-            />
-
-            <InputField
-              label="Organization"
-              name="organization"
-              value={form.organization}
-              onChange={updateField}
-            />
-
-            <InputField
-              label="ID Proof Number"
-              name="idProofNo"
-              value={form.idProofNo}
-              onChange={updateField}
-            />
-
-            <InputField
-              label="Address"
-              name="address"
-              value={form.address}
-              onChange={updateField}
-            />
-
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">
-                Visiting Purpose
-                <span className="ml-1 text-red-500">*</span>
-              </span>
-
-              <select
-                name="visitingPurpose"
-                value={form.visitingPurpose}
-                onChange={updateField}
-                required
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#4169e8]"
-              >
-                <option value="">Select Purpose</option>
-                <option value="Audit">Audit</option>
-                <option value="Relative">Relative</option>
-                <option value="Suppliers">Suppliers</option>
-                <option value="Others">Others</option>
-              </select>
-            </label>
-
-            <InputField
-              label="Validation Hours"
+            <Input
+              id="validationHours"
               name="validationHours"
+              label="Valid for (hours)"
               type="number"
               min="1"
               max="168"
               value={form.validationHours}
               onChange={updateField}
+              hint="Between 1 and 168 hours"
               required
             />
+
+            <div className="sm:col-span-2">
+              <Textarea
+                id="remarks"
+                name="remarks"
+                label="Remarks"
+                rows={2}
+                value={form.remarks}
+                onChange={updateField}
+              />
+            </div>
           </div>
+        </Card>
 
-          <label className="mt-5 block space-y-2">
-            <span className="text-sm font-medium text-slate-700">
-              Remarks
-            </span>
+        <Card
+          title="Visiting employee / director"
+          description="Look up by Employee ID to fetch their details."
+          className="rise"
+          style={{ "--i": 2 }}
+        >
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <input
+                value={employeeId}
+                onChange={(event) => {
+                  setEmployeeId(event.target.value);
+                  setEmployee(null);
+                  setSearchError("");
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    handleEmployeeSearch();
+                  }
+                }}
+                aria-label="Employee ID"
+                aria-invalid={Boolean(searchError)}
+                placeholder="EMP0001"
+                className="field font-mono uppercase placeholder:normal-case placeholder:font-sans"
+              />
+            </div>
 
-            <textarea
-              name="remarks"
-              rows={3}
-              value={form.remarks}
-              onChange={updateField}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#4169e8]"
-            />
-          </label>
-        </section>
-
-        <section className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-2 text-base font-semibold text-[#10132e]">
-            Visiting Employee / Director
-          </h2>
-
-          <p className="mb-5 text-sm text-slate-500">
-            Search using Employee ID to retrieve employee details.
-          </p>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <input
-              value={employeeId}
-              onChange={(event) => {
-                setEmployeeId(event.target.value);
-                setEmployee(null);
-                setSearchError("");
-              }}
-              placeholder="Enter Employee ID (EMP0001)"
-              className="min-h-11 flex-1 rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-[#4169e8]"
-            />
-
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={handleEmployeeSearch}
-              disabled={searching}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#10132e] px-5 text-sm font-medium text-white disabled:opacity-60"
+              loading={searching}
+              loadingText="Searching"
             >
-              {searching ? (
-                <Loader2 size={17} className="animate-spin" />
-              ) : (
-                <Search size={17} />
-              )}
-              Search Employee
-            </button>
+              <Search size={13} />
+              Search
+            </Button>
           </div>
 
           {searchError && (
-            <p role="alert" className="mt-3 text-sm text-red-600">
+            <p role="alert" className="mt-2 text-xs text-red-600">
               {searchError}
             </p>
           )}
 
           {employee && (
-            <div className="mt-5 rounded-md border border-blue-200 bg-blue-50/50 p-5">
-              <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#10132e]">
-                <CheckCircle2 size={18} className="text-green-600" />
-                Employee Selected
+            <div className="animate-pop mt-3 rounded-card border border-emerald-200 bg-emerald-50/50 p-3">
+              <div className="mb-2.5 flex items-center gap-2">
+                <Avatar name={employee.name} size={26} />
+                <p className="text-[13px] font-semibold text-ink">
+                  {employee.name}
+                </p>
+                <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700">
+                  <CheckCircle2 size={12} />
+                  Selected
+                </span>
               </div>
 
-              <div className="grid gap-4 text-sm md:grid-cols-2">
-                <Detail label="Name" value={employee.name} />
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
                 <Detail label="Employee ID" value={employee.employeeId} />
                 <Detail label="Department" value={employee.department} />
                 <Detail label="Role" value={employee.role} />
                 <Detail label="Phone" value={employee.phone} />
-                <Detail label="Email" value={employee.email} />
+                <div className="col-span-2">
+                  <Detail label="Email" value={employee.email} />
+                </div>
               </div>
             </div>
           )}
-        </section>
+        </Card>
 
         <div className="flex justify-end">
-          <button
+          <Button
             type="submit"
-            disabled={submitting || searching || !employee}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#4169e8] px-6 text-sm font-semibold text-white transition hover:bg-[#3455c4] disabled:cursor-not-allowed disabled:opacity-60"
+            size="lg"
+            loading={submitting}
+            loadingText="Registering..."
+            disabled={searching || !employee}
           >
-            {submitting ? (
-              <Loader2 size={17} className="animate-spin" />
-            ) : (
-              <UserPlus size={17} />
-            )}
-            {submitting ? "Registering..." : "Register Visitor"}
-          </button>
+            <UserPlus size={14} />
+            Register visitor
+          </Button>
         </div>
       </form>
     </div>
   );
 };
-
-const Detail = ({ label, value }) => (
-  <div>
-    <p className="mb-1 text-xs text-slate-500">{label}</p>
-    <p className="font-medium text-slate-800">{value || "—"}</p>
-  </div>
-);
 
 export default VisitorRegistrationPage;

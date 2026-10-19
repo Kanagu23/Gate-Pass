@@ -1,6 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuth } from "./context/AuthContext";
+import { roleHome } from "./config/navigation";
+import PageLoader from "./components/common/PageLoader";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import HomeRedirect from "./routes/HomeRedirect";
 import VisitorPassPage from "./pages/visitor/VisitorPassPage";
@@ -13,23 +15,11 @@ import VisitorRegistrationPage from "./pages/visitor/VisitorRegistrationPage";
 import VisitorApprovalPage from "./pages/visitor/VisitorApprovalPage";
 import VisitorListPage from "./pages/visitor/VisitorListPage";
 import VisitorCheckoutPage from "./pages/visitor/VisitorCheckoutPage";
-const roleHome = {
-  ADMIN: "/admin",
-  GATE_EMPLOYEE: "/gate",
-  EMPLOYEE: "/employee",
-  DIRECTOR: "/director",
-};
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-slate-500">Checking your session...</p>
-      </div>
-    );
-  }
+  if (loading) return <PageLoader label="Checking your session..." />;
 
   return (
     <Routes>
@@ -78,9 +68,9 @@ const AppRoutes = () => {
             path="/gate/visitors/register"
             element={<VisitorRegistrationPage />}
           />
-          <Route path="/admin/visitors" element={<VisitorListPage />} />
+          <Route path="/gate/visitors" element={<VisitorListPage />} />
           <Route
-            path="/admin/visitors/check-out"
+            path="/gate/visitors/check-out"
             element={<VisitorCheckoutPage />}
           />
         </Route>

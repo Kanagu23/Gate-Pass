@@ -1,270 +1,177 @@
-
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  LayoutDashboard,
-  ShieldCheck,
-  Users,
-  UserCheck,
+  ArrowUpRight,
   Clock3,
   LogOut,
-  UserX,
   RefreshCw,
-  AlertCircle,
-  Loader2,
+  UserCheck,
+  Users,
+  UserX,
 } from "lucide-react";
 
+import Alert from "../../components/common/Alert";
+import Button from "../../components/common/Button";
 import Card from "../../components/common/Card";
-import {
-  getDashboardStats,
-  getDashboardAnalytics,
-} from "../../api/dashboard.api";
-
-import VisitorActivityChart from "../../components/dashboard/VisitorActivityChart";
-import VisitorStatusChart from "../../components/dashboard/VisitorStatusChart";
-
-const roleLabels = {
-  ADMIN: "Administrator",
-  GATE_EMPLOYEE: "Gate Employee",
-  EMPLOYEE: "Employee",
-  DIRECTOR: "Director",
-};
+import PageHeader from "../../components/common/PageHeader";
+import { Skeleton } from "../../components/common/Skeleton";
+import useCountUp from "../../hooks/useCountUp";
+import { getDashboardStats } from "../../api/dashboard.api";
+import { navigationByRole, roleLabels } from "../../config/navigation";
 
 const STAT_ITEMS = [
-  {
-    key: "totalVisitors",
-    label: "Total Visitors",
-    icon: Users,
-    iconStyle: "bg-blue-50 text-blue-600",
-  },
-  {
-    key: "currentlyInside",
-    label: "Currently Inside",
-    icon: UserCheck,
-    iconStyle: "bg-green-50 text-green-600",
-  },
-  {
-    key: "pendingApprovals",
-    label: "Pending Approvals",
-    icon: Clock3,
-    iconStyle: "bg-amber-50 text-amber-600",
-  },
-  {
-    key: "checkedOut",
-    label: "Checked Out",
-    icon: LogOut,
-    iconStyle: "bg-slate-100 text-slate-600",
-  },
-  {
-    key: "rejected",
-    label: "Rejected Requests",
-    icon: UserX,
-    iconStyle: "bg-red-50 text-red-600",
-  },
+  { key: "totalVisitors", label: "Total visitors", icon: Users, tone: "bg-blue-50 text-blue-600" },
+  { key: "currentlyInside", label: "Currently inside", icon: UserCheck, tone: "bg-emerald-50 text-emerald-600" },
+  { key: "pendingApprovals", label: "Pending approvals", icon: Clock3, tone: "bg-amber-50 text-amber-600" },
+  { key: "checkedOut", label: "Checked out", icon: LogOut, tone: "bg-slate-100 text-slate-500" },
+  { key: "rejected", label: "Rejected", icon: UserX, tone: "bg-red-50 text-red-500" },
 ];
 
-const StatCard = ({ label, value, icon: Icon, iconStyle }) => (
-  <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-    <div className="flex items-start justify-between gap-3">
-      <p className="text-sm font-medium text-slate-500">
-        {label}
-      </p>
+const StatCard = ({ label, value, icon: Icon, tone, index }) => {
+  const animated = useCountUp(value);
 
-      <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${iconStyle}`}
-      >
-        <Icon size={19} />
+  return (
+    <div
+      style={{ "--i": index }}
+      className="rise group rounded-card border border-line bg-white p-3.5 shadow-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-line-strong hover:shadow-[0_4px_14px_-6px_rgba(16,19,46,0.12)]"
+    >
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-slate-500">{label}</p>
+        <span
+          className={`flex h-7 w-7 items-center justify-center rounded-md ${tone}`}
+        >
+          <Icon size={14} />
+        </span>
       </div>
-    </div>
 
-    <p className="mt-4 text-3xl font-semibold tracking-tight text-[#10132e]">
-      {Number(value ?? 0).toLocaleString("en-IN")}
-    </p>
+      <p className="mt-2.5 text-2xl font-semibold tabular-nums tracking-tight text-ink">
+        {animated.toLocaleString("en-IN")}
+      </p>
+    </div>
+  );
+};
+
+const StatSkeleton = () => (
+  <div className="rounded-card border border-line bg-white p-3.5">
+    <div className="flex items-center justify-between">
+      <Skeleton className="h-3 w-20" />
+      <Skeleton className="h-7 w-7" />
+    </div>
+    <Skeleton className="mt-3 h-6 w-14" />
   </div>
 );
 
 const DashboardPage = ({ role }) => {
   const roleLabel = roleLabels[role] || "User";
   const isAdmin = role === "ADMIN";
+  const actions = (navigationByRole[role] || []).filter((item) => item.hint);
 
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(isAdmin);
+  const [error, setError] = useState("");
 
-const [stats, setStats] = useState(null);
-const [analytics, setAnalytics] = useState(null);
-const [loading, setLoading] = useState(isAdmin);
-const [error, setError] = useState("");
+  const loadStats = useCallback(async () => {
+    if (!isAdmin) return;
 
-
-
-const loadStats = useCallback(async () => {
-  if (!isAdmin) return;
-
-  setLoading(true);
-  setError("");
-
-  try {
-    const results = await Promise.allSettled([
-      getDashboardStats(),
-      getDashboardAnalytics(),
-    ]);
-
-    const [statsResult, analyticsResult] = results;
-
-    if (statsResult.status === "fulfilled") {
-      setStats(statsResult.value.stats);
-    }
-
-    if (analyticsResult.status === "fulfilled") {
-      setAnalytics(analyticsResult.value.analytics);
-    }
-
-    if (
-      statsResult.status === "rejected" ||
-      analyticsResult.status === "rejected"
-    ) {
+    try {
+      setLoading(true);
+      setError("");
+      const response = await getDashboardStats();
+      setStats(response.stats);
+    } catch (err) {
       setError(
-        "Some dashboard data could not be refreshed. Please try again."
+        err.response?.data?.message || "Unable to load dashboard statistics."
       );
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    setError("Unable to refresh dashboard.");
-  } finally {
-    setLoading(false);
-  }
-}, [isAdmin]);
-
+  }, [isAdmin]);
 
   useEffect(() => {
     loadStats();
   }, [loadStats]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-blue-50 text-[#4169e8]">
-            <LayoutDashboard size={22} />
-          </div>
-
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-[#10132e]">
-              {roleLabel} Dashboard
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-500">
-              {isAdmin
-                ? "Monitor visitor activity and access status."
-                : "Your Gate Pass workspace."}
-            </p>
-          </div>
-        </div>
-
-        {isAdmin && (
-        <button
-  type="button"
-  onClick={loadStats}
-  disabled={loading}
-  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
->
-  <RefreshCw
-    size={16}
-    className={loading ? "animate-spin" : ""}
-  />
-  {loading ? "Refreshing..." : "Refresh"}
-</button>
-        )}
-      </section>
-
-      {isAdmin ? (
-        <>
-          {error && (
-            <div
-              role="alert"
-              className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+    <div className="mx-auto max-w-6xl space-y-5">
+      <PageHeader
+        title={`${roleLabel} dashboard`}
+        description={
+          isAdmin
+            ? "Visitor activity and access status at a glance."
+            : "Your Gate Pass workspace."
+        }
+        actions={
+          isAdmin && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={loadStats}
+              disabled={loading}
             >
-              <AlertCircle size={18} />
-              {error}
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+              Refresh
+            </Button>
+          )
+        }
+      />
+
+      {isAdmin && (
+        <section aria-label="Visitor statistics" className="space-y-3">
+          {error && <Alert tone="error">{error}</Alert>}
+
+          {loading && !stats ? (
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
+              {STAT_ITEMS.map((item) => (
+                <StatSkeleton key={item.key} />
+              ))}
             </div>
+          ) : (
+            stats && (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
+                {STAT_ITEMS.map((item, index) => (
+                  <StatCard
+                    key={item.key}
+                    index={index}
+                    label={item.label}
+                    value={stats[item.key]}
+                    icon={item.icon}
+                    tone={item.tone}
+                  />
+                ))}
+              </div>
+            )
           )}
+        </section>
+      )}
 
-       
-{loading && !stats ? (
-  <div className="flex items-center justify-center gap-3 rounded-md border border-slate-200 bg-white p-12 text-sm text-slate-500">
-    <Loader2 size={19} className="animate-spin" />
-    Loading dashboard statistics...
-  </div>
-) : stats ? (
-  <>
-    {/* Existing statistics cards */}
-    <section>
-      <div className="mb-4">
-        <h2 className="text-base font-semibold text-[#10132e]">
-          Visitor Overview
-        </h2>
-        <p className="mt-1 text-xs text-slate-500">
-          Current statistics from MongoDB
-        </p>
-      </div>
+      {actions.length > 0 && (
+        <Card title="Quick actions" padded={false}>
+          <div
+            className={`grid divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0 ${
+              actions.length > 2 ? "lg:grid-cols-3" : ""
+            }`}
+          >
+            {actions.map(({ label, path, icon: Icon, hint }) => (
+              <Link
+                key={path}
+                to={path}
+                className="group flex items-center gap-3 p-3.5 transition-colors hover:bg-slate-50"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand transition-transform duration-150 group-hover:scale-105">
+                  <Icon size={15} />
+                </span>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {STAT_ITEMS.map((item) => (
-          <StatCard
-            key={item.key}
-            label={item.label}
-            value={stats[item.key]}
-            icon={item.icon}
-            iconStyle={item.iconStyle}
-          />
-        ))}
-      </div>
-    </section>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-medium text-slate-800">{label}</p>
+                  <p className="truncate text-xs text-slate-500">{hint}</p>
+                </div>
 
-    {/* Analytics charts */}
-    {analytics && (
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-base font-semibold text-[#10132e]">
-            Visitor Analytics
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Registration trends and visitor status distribution
-          </p>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <VisitorActivityChart
-            data={analytics.dailyActivity}
-          />
-
-          <VisitorStatusChart
-            data={analytics.statusDistribution}
-          />
-        </div>
-      </section>
-    )}
-  </>
-) : null}
-
-        </>
-      ) : (
-        <Card
-          title="Welcome to Gate Pass"
-          description="Your workspace is ready."
-        >
-          <div className="flex items-start gap-3">
-            <ShieldCheck
-              size={20}
-              className="mt-0.5 shrink-0 text-[#4169e8]"
-            />
-
-            <div>
-              <p className="text-sm font-medium text-slate-800">
-                Signed in as {roleLabel}
-              </p>
-
-              <p className="mt-1 text-sm leading-6 text-slate-500">
-                Use the sidebar to access your visitor management
-                features.
-              </p>
-            </div>
+                <ArrowUpRight
+                  size={14}
+                  className="text-slate-300 transition-all duration-150 group-hover:-translate-y-px group-hover:translate-x-px group-hover:text-brand"
+                />
+              </Link>
+            ))}
           </div>
         </Card>
       )}

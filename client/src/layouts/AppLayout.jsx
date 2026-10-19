@@ -1,26 +1,21 @@
-
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/SideBar";
 import Header from "../components/Header";
 
 const AppLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const handleOpenMenu = () => setMobileOpen(true);
-  const handleCloseMenu = () => setMobileOpen(false);
+  const { pathname } = useLocation();
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Sidebar
-        mobileOpen={mobileOpen}
-        onClose={handleCloseMenu}
-      />
+    <div className="min-h-screen bg-canvas">
+      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      <div className="min-h-screen md:pl-64">
-        <Header onMenuClick={handleOpenMenu} />
+      <div className="flex min-h-screen flex-col md:pl-56">
+        <Header onMenuClick={() => setMobileOpen(true)} />
 
-        <main className="p-4 sm:p-6 lg:p-8">
+        {/* key re-triggers the entrance animation on navigation */}
+        <main key={pathname} className="animate-fade flex-1 p-4 sm:p-5 lg:p-6">
           <Outlet />
         </main>
       </div>

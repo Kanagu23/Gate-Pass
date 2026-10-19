@@ -1,40 +1,36 @@
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import {
-  Users,
-  RefreshCw,
-  Search,
-  Printer,
-  Loader2,
-  AlertCircle,
-  Inbox,
-} from "lucide-react";
+import { Printer, RefreshCw, Search, UserPlus, Users, X } from "lucide-react";
 
 import { getVisitors } from "../../api/visitor.api";
+import Alert from "../../components/common/Alert";
+import Avatar from "../../components/common/Avatar";
+import Button from "../../components/common/Button";
+import EmptyState from "../../components/common/EmptyState";
+import PageHeader from "../../components/common/PageHeader";
+import StatusBadge from "../../components/common/StatusBadge";
+import { TableSkeleton } from "../../components/common/Skeleton";
+import { buttonStyles } from "../../components/common/buttonStyles";
 
-const STATUS_OPTIONS = [
-  { label: "All Visitors", value: "" },
+const STATUS_TABS = [
+  { label: "All", value: "" },
   { label: "Pending", value: "PENDING" },
-  { label: "Checked In", value: "CHECKED_IN" },
-  { label: "Checked Out", value: "CHECKED_OUT" },
+  { label: "Checked in", value: "CHECKED_IN" },
+  { label: "Checked out", value: "CHECKED_OUT" },
   { label: "Rejected", value: "REJECTED" },
 ];
 
-const STATUS_STYLES = {
-  PENDING: "bg-amber-50 text-amber-700",
-  APPROVED: "bg-blue-50 text-blue-700",
-  CHECKED_IN: "bg-green-50 text-green-700",
-  CHECKED_OUT: "bg-slate-100 text-slate-700",
-  REJECTED: "bg-red-50 text-red-700",
-};
+const formatDate = (value) =>
+  value
+    ? new Date(value).toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "—";
 
 const VisitorListPage = () => {
-  const location = useLocation();
-
-  const basePath = location.pathname.startsWith("/admin")
-    ? "/admin"
-    : "/gate";
+  const { pathname } = useLocation();
+  const basePath = pathname.startsWith("/admin") ? "/admin" : "/gate";
 
   const [visitors, setVisitors] = useState([]);
   const [status, setStatus] = useState("");
@@ -46,14 +42,10 @@ const VisitorListPage = () => {
     try {
       setLoading(true);
       setError("");
-
       const response = await getVisitors(status);
       setVisitors(response.visitors || []);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Unable to load visitors."
-      );
+      setError(err.response?.data?.message || "Unable to load visitors.");
     } finally {
       setLoading(false);
     }
@@ -63,197 +55,192 @@ const VisitorListPage = () => {
     loadVisitors();
   }, [loadVisitors]);
 
-  const filteredVisitors = visitors.filter((visitor) => {
+  const filteredVisitors = useMemo(() => {
     const query = search.trim().toLowerCase();
+    if (!query) return visitors;
 
-    if (!query) return true;
-
-    return [
-      visitor.name,
-      visitor.visitorId,
-      visitor.mobile,
-      visitor.organization,
-      visitor.visitingEmployee?.name,
-      visitor.visitingEmployee?.employeeId,
-    ].some((value) =>
-      String(value || "").toLowerCase().includes(query)
+    return visitors.filter((visitor) =>
+      [
+        visitor.name,
+        visitor.visitorId,
+        visitor.mobile,
+        visitor.organization,
+        visitor.visitingEmployee?.name,
+        visitor.visitingEmployee?.employeeId,
+      ].some((value) => String(value || "").toLowerCase().includes(query))
     );
-  });
+  }, [visitors, search]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-[#4169e8]">
-            <Users size={19} />
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Visitor Management
-            </span>
+    <div className="mx-auto max-w-6xl space-y-4">
+      <PageHeader
+        title="Visitors"
+        description="Track visitor requests, check-in status and passes."
+        actions={
+          <Link
+            to={`${basePath}/visitors/register`}
+            className={buttonStyles("primary", "md")}
+          >
+            <UserPlus size={14} />
+            Register visitor
+          </Link>
+        }
+      />
+
+      <div className="rise rounded-card border border-line bg-white shadow-card" style={{ "--i": 1 }}>
+        {/* Toolbar */}
+        <div className="flex flex-col gap-2.5 border-b border-line p-3 lg:flex-row lg:items-center">
+          <div
+            role="tablist"
+            aria-label="Filter by status"
+            className="flex gap-0.5 overflow-x-auto rounded-control bg-slate-100 p-0.5"
+          >
+            {STATUS_TABS.map((tab) => {
+              const active = status === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setStatus(tab.value)}
+                  className={`h-7 whitespace-nowrap rounded-[5px] px-2.5 text-xs font-medium transition-all duration-150 ${
+                    active
+                      ? "bg-white text-ink shadow-[0_1px_2px_rgba(16,19,46,0.1)]"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
 
-          <h1 className="text-2xl font-semibold text-[#10132e]">
-            Visitor Directory
-          </h1>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Track visitor requests, check-in status, and passes.
-          </p>
-        </div>
-
-        <Link
-          to={`${basePath}/visitors/register`}
-          className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#4169e8] px-4 text-sm font-semibold text-white hover:bg-blue-700"
-        >
-          + Register Visitor
-        </Link>
-      </div>
-
-      <div className="rounded-md border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
+          <div className="relative flex-1 lg:max-w-xs lg:ml-auto">
             <Search
-              size={17}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={14}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
             />
-
             <input
-              type="search"
+              type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search visitor, ID, mobile, employee..."
-              className="h-10 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-sm outline-none focus:border-[#4169e8]"
+              placeholder="Search name, ID, mobile, employee..."
+              aria-label="Search visitors"
+              className="field pl-8 pr-8"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
 
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#4169e8]"
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={loadVisitors}
             disabled={loading}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            aria-label="Refresh visitors"
           >
-            <RefreshCw
-              size={16}
-              className={loading ? "animate-spin" : ""}
-            />
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
             Refresh
-          </button>
+          </Button>
         </div>
 
         {error && (
-          <div
-            role="alert"
-            className="m-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-          >
-            <AlertCircle size={17} />
-            {error}
+          <div className="p-3">
+            <Alert tone="error">{error}</Alert>
           </div>
         )}
 
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
-            <Loader2 size={19} className="animate-spin" />
-            Loading visitors...
-          </div>
+        {loading && visitors.length === 0 ? (
+          <TableSkeleton rows={6} />
         ) : filteredVisitors.length === 0 ? (
-          <div className="flex flex-col items-center py-16 text-slate-500">
-            <Inbox size={34} className="mb-3" />
-            <p className="text-sm">No visitors found.</p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No visitors found"
+            description={
+              search
+                ? "Try a different search term or clear the filters."
+                : "Visitors you register will appear here."
+            }
+          />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[950px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <div
+            className={`overflow-x-auto transition-opacity duration-150 ${
+              loading ? "opacity-60" : ""
+            }`}
+          >
+            <table className="tbl min-w-[860px]">
+              <thead>
                 <tr>
-                  <th className="px-5 py-4">Visitor</th>
-                  <th className="px-5 py-4">Contact</th>
-                  <th className="px-5 py-4">Visiting Employee</th>
-                  <th className="px-5 py-4">Purpose</th>
-                  <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4">Registered</th>
-                  <th className="px-5 py-4 text-right">Action</th>
+                  <th>Visitor</th>
+                  <th>Contact</th>
+                  <th>Visiting</th>
+                  <th>Purpose</th>
+                  <th>Status</th>
+                  <th>Registered</th>
+                  <th className="text-right">Pass</th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {filteredVisitors.map((visitor) => (
-                  <tr key={visitor._id} className="hover:bg-slate-50">
-                    <td className="px-5 py-4">
-                      <p className="font-semibold text-[#10132e]">
-                        {visitor.name}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {visitor.visitorId || "—"}
-                      </p>
+                  <tr key={visitor._id}>
+                    <td>
+                      <div className="flex items-center gap-2.5">
+                        <Avatar name={visitor.name} />
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-ink">
+                            {visitor.name}
+                          </p>
+                          <p className="font-mono text-[11px] text-slate-400">
+                            {visitor.visitorId || "—"}
+                          </p>
+                        </div>
+                      </div>
                     </td>
 
-                    <td className="px-5 py-4 text-slate-600">
+                    <td className="text-slate-600">
                       <p>{visitor.mobile}</p>
-                      <p className="mt-1 text-xs">
+                      <p className="text-xs text-slate-400">
                         {visitor.organization || "—"}
                       </p>
                     </td>
 
-                    <td className="px-5 py-4 text-slate-600">
-                      <p>
-                        {visitor.visitingEmployee?.name || "—"}
-                      </p>
-                      <p className="mt-1 text-xs">
+                    <td className="text-slate-600">
+                      <p>{visitor.visitingEmployee?.name || "—"}</p>
+                      <p className="font-mono text-[11px] text-slate-400">
                         {visitor.visitingEmployee?.employeeId || "—"}
                       </p>
                     </td>
 
-                    <td className="px-5 py-4 text-slate-600">
-                      {visitor.visitingPurpose}
+                    <td className="text-slate-600">{visitor.visitingPurpose}</td>
+
+                    <td>
+                      <StatusBadge status={visitor.status} />
                     </td>
 
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-sm px-2.5 py-1 text-xs font-semibold ${
-                          STATUS_STYLES[visitor.status] ||
-                          "bg-slate-100 text-slate-700"
-                        }`}
-                      >
-                        {visitor.status?.replaceAll("_", " ")}
-                      </span>
+                    <td className="whitespace-nowrap text-xs text-slate-500">
+                      {formatDate(visitor.createdAt)}
                     </td>
 
-                    <td className="px-5 py-4 text-slate-600">
-                      {visitor.createdAt
-                        ? new Date(visitor.createdAt).toLocaleString(
-                            "en-IN",
-                            {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            }
-                          )
-                        : "—"}
-                    </td>
-
-                    <td className="px-5 py-4 text-right">
+                    <td className="text-right">
                       {visitor.status === "CHECKED_IN" ? (
                         <Link
                           to={`${basePath}/visitors/${visitor._id}/pass`}
-                          className="inline-flex items-center gap-2 rounded-md border border-blue-200 px-3 py-2 text-xs font-semibold text-[#4169e8] hover:bg-blue-50"
+                          className={buttonStyles("soft", "sm")}
                         >
-                          <Printer size={15} />
-                          View / Print Pass
+                          <Printer size={12} />
+                          View pass
                         </Link>
                       ) : (
-                        <span className="text-xs text-slate-400">
-                          No pass available
-                        </span>
+                        <span className="text-xs text-slate-300">—</span>
                       )}
                     </td>
                   </tr>
@@ -263,8 +250,8 @@ const VisitorListPage = () => {
           </div>
         )}
 
-        <div className="border-t border-slate-200 px-5 py-3 text-xs text-slate-500">
-          Showing {filteredVisitors.length} of {visitors.length} loaded visitors
+        <div className="border-t border-line px-4 py-2 text-xs text-slate-400">
+          Showing {filteredVisitors.length} of {visitors.length} visitors
         </div>
       </div>
     </div>

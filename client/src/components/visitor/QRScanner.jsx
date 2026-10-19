@@ -1,12 +1,9 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import {
-  Camera,
-  CameraOff,
-  AlertCircle,
-  ScanLine,
-} from "lucide-react";
+import { Camera, CameraOff, ScanLine } from "lucide-react";
+
+import Alert from "../common/Alert";
+import Button from "../common/Button";
 
 const QRScanner = ({ onScan, disabled = false }) => {
   const scannerRef = useRef(null);
@@ -42,14 +39,9 @@ const QRScanner = ({ onScan, disabled = false }) => {
     try {
       await scanner.start(
         { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 240, height: 240 },
-        },
+        { fps: 10, qrbox: { width: 240, height: 240 } },
         (decodedText) => {
-          if (disabledRef.current || scanningRef.current) {
-            return;
-          }
+          if (disabledRef.current || scanningRef.current) return;
 
           scanningRef.current = true;
           onScanRef.current(decodedText);
@@ -59,10 +51,7 @@ const QRScanner = ({ onScan, disabled = false }) => {
 
       setCameraActive(true);
     } catch (err) {
-      setError(
-        err?.message || "Unable to access camera."
-      );
-
+      setError(err?.message || "Unable to access camera.");
       scannerRef.current = null;
     }
   };
@@ -88,53 +77,38 @@ const QRScanner = ({ onScan, disabled = false }) => {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-hidden rounded-md border border-slate-200 bg-slate-950">
-        <div
-          id="visitor-qr-reader"
-          className="min-h-[260px] w-full"
-        />
+    <div className="space-y-3">
+      <div className="relative overflow-hidden rounded-card bg-slate-950">
+        <div id="visitor-qr-reader" className="w-full" />
 
         {!cameraActive && (
-          <div className="flex items-center justify-center gap-2 border-t border-slate-800 p-4 text-sm text-slate-300">
-            <ScanLine size={18} />
-            Camera scanner is inactive
+          <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 text-slate-400">
+            <div className="relative flex h-14 w-14 items-center justify-center">
+              {/* Corner brackets */}
+              <span className="absolute left-0 top-0 h-3 w-3 rounded-tl border-l-2 border-t-2 border-slate-500" />
+              <span className="absolute right-0 top-0 h-3 w-3 rounded-tr border-r-2 border-t-2 border-slate-500" />
+              <span className="absolute bottom-0 left-0 h-3 w-3 rounded-bl border-b-2 border-l-2 border-slate-500" />
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-br border-b-2 border-r-2 border-slate-500" />
+              <ScanLine size={20} />
+            </div>
+            <p className="text-xs">Camera is off</p>
           </div>
         )}
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-        >
-          <AlertCircle size={17} />
-          {error}
-        </div>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      <div className="flex flex-wrap gap-3">
-        {!cameraActive ? (
-          <button
-            type="button"
-            onClick={startCamera}
-            disabled={disabled}
-            className="inline-flex items-center gap-2 rounded-md bg-[#4169e8] px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            <Camera size={17} />
-            Start Camera
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={stopCamera}
-            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            <CameraOff size={17} />
-            Stop Camera
-          </button>
-        )}
-      </div>
+      {!cameraActive ? (
+        <Button onClick={startCamera} disabled={disabled}>
+          <Camera size={14} />
+          Start camera
+        </Button>
+      ) : (
+        <Button variant="secondary" onClick={stopCamera}>
+          <CameraOff size={14} />
+          Stop camera
+        </Button>
+      )}
     </div>
   );
 };
