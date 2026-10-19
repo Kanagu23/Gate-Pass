@@ -23,3 +23,16 @@ export const updateUserStatus = async (userId, isActive) => {
 
   return response.data;
 };
+
+
+export const updateUserPermissions = async (
+  userId,
+  permissions
+) => {
+  const response = await api.patch(
+    `/auth/users/${userId}/permissions`,
+    { permissions }
+  );
+
+  return response.data;
+};

@@ -9,6 +9,7 @@ const {
   createUser,
   getUsers,
   updateUserStatus,
+  updateUserPermissions,
 } = require("../controllers/auth.controller");
 
 const {
@@ -38,5 +39,11 @@ router.patch(
   authenticate,
   allowRoles("ADMIN"),
   updateUserStatus
+);
+router.patch(
+  "/users/:userId/permissions",
+  authenticate,
+  allowRoles("ADMIN"),
+  updateUserPermissions
 );
 module.exports = router;

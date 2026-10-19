@@ -1,9 +1,12 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Users } from "lucide-react";
 
-import { getUsers ,updateUserStatus} from "../../api/users.api";
+import {
+  getUsers,
+  updateUserStatus,
+  updateUserPermissions,
+} from "../../api/users.api";
 import Alert from "../../components/common/Alert";
 import Card from "../../components/common/Card";
 import Input from "../../components/common/Input";
@@ -11,6 +14,9 @@ import PageHeader from "../../components/common/PageHeader";
 import Select from "../../components/common/Select";
 import Button from "../../components/common/Button";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
+import Modal from "../../components/common/Modal";
+import PermissionEditor from "../../components/common/PermissionEditor";
+
 
 const UserManagementPage = () => {
   const [users, setUsers] = useState([]);
@@ -19,9 +25,13 @@ const UserManagementPage = () => {
   const [department, setDepartment] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-const [pending, setPending] = useState(null);
-const [updatingId, setUpdatingId] = useState(null);
-const [successMessage, setSuccessMessage] = useState("");
+  const [pending, setPending] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
+const [permissionUser, setPermissionUser] = useState(null);
+const [selectedPermissions, setSelectedPermissions] = useState([]);
+const [confirmPermissions, setConfirmPermissions] = useState(false);
+const [savingPermissions, setSavingPermissions] = useState(false);
   useEffect(() => {
     let active = true;
 
@@ -34,10 +44,7 @@ const [successMessage, setSuccessMessage] = useState("");
         }
       } catch (err) {
         if (active) {
-          setError(
-            err.response?.data?.message ||
-              "Unable to load users."
-          );
+          setError(err.response?.data?.message || "Unable to load users.");
         }
       } finally {
         if (active) setLoading(false);
@@ -51,57 +58,102 @@ const [successMessage, setSuccessMessage] = useState("");
     };
   }, []);
 
-  const departments = useMemo(
-    () =>
-      [...new Set(users.map((user) => user.department).filter(Boolean))]
-        .sort(),
-    [users]
-  );
 
-
-const handleStatusChange = (user) => {
-  setPending(user);
+const openPermissionEditor = (user) => {
+  setPermissionUser(user);
+  setSelectedPermissions([...(user.permissions || [])]);
+  setConfirmPermissions(false);
 };
 
-const confirmStatusChange = async () => {
-  if (!pending || updatingId) return;
+const closePermissionEditor = () => {
+  if (savingPermissions) return;
 
-  const user = pending;
-  const nextStatus = !user.isActive;
+  setConfirmPermissions(false);
+  setPermissionUser(null);
+};
+
+const savePermissions = async () => {
+  if (!permissionUser || savingPermissions) return;
 
   try {
-    setUpdatingId(user._id);
+    setSavingPermissions(true);
     setError("");
     setSuccessMessage("");
 
-    const response = await updateUserStatus(
-      user._id,
-      nextStatus
+    const response = await updateUserPermissions(
+      permissionUser._id,
+      selectedPermissions
     );
 
     setUsers((previous) =>
-      previous.map((item) =>
-        item._id === user._id
+      previous.map((user) =>
+        user._id === permissionUser._id
           ? {
-              ...item,
-              isActive: response.user.isActive,
+              ...user,
+              permissions: response.user.permissions,
             }
-          : item
+          : user
       )
     );
 
     setSuccessMessage(response.message);
-    setPending(null);
+    setConfirmPermissions(false);
+    setPermissionUser(null);
   } catch (error) {
     setError(
       error.response?.data?.message ||
-        "Unable to update user status."
+        "Unable to update user permissions."
     );
+    setConfirmPermissions(false);
   } finally {
-    setUpdatingId(null);
+    setSavingPermissions(false);
   }
 };
 
+  const departments = useMemo(
+    () =>
+      [...new Set(users.map((user) => user.department).filter(Boolean))].sort(),
+    [users],
+  );
+
+  const handleStatusChange = (user) => {
+    setPending(user);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pending || updatingId) return;
+
+    const user = pending;
+    const nextStatus = !user.isActive;
+
+    try {
+      setUpdatingId(user._id);
+      setError("");
+      setSuccessMessage("");
+
+      const response = await updateUserStatus(user._id, nextStatus);
+
+      setUsers((previous) =>
+        previous.map((item) =>
+          item._id === user._id
+            ? {
+                ...item,
+                isActive: response.user.isActive,
+              }
+            : item,
+        ),
+      );
+
+      setSuccessMessage(response.message);
+      setPending(null);
+    } catch (error) {
+      setError(
+        error.response?.data?.message || "Unable to update user status.",
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const filteredUsers = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -109,13 +161,11 @@ const confirmStatusChange = async () => {
     return users.filter((user) => {
       const matchesSearch =
         !term ||
-        [
-          user.name,
-          user.employeeId,
-          user.email,
-          user.department,
-        ].some((value) =>
-          String(value || "").toLowerCase().includes(term)
+        [user.name, user.employeeId, user.email, user.department].some(
+          (value) =>
+            String(value || "")
+              .toLowerCase()
+              .includes(term),
         );
 
       return (
@@ -127,7 +177,9 @@ const confirmStatusChange = async () => {
   }, [users, search, role, department]);
 
   return (
+    
     <div className="space-y-4">
+        
       <PageHeader
         backTo="/admin"
         backLabel="Dashboard"
@@ -141,13 +193,10 @@ const confirmStatusChange = async () => {
         </Alert>
       )}
       {successMessage && (
-  <Alert
-    tone="success"
-    onDismiss={() => setSuccessMessage("")}
-  >
-    {successMessage}
-  </Alert>
-)}
+        <Alert tone="success" onDismiss={() => setSuccessMessage("")}>
+          {successMessage}
+        </Alert>
+      )}
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -237,9 +286,7 @@ const confirmStatusChange = async () => {
                 filteredUsers.map((user) => (
                   <tr key={user._id}>
                     <td>
-                      <p className="font-semibold text-ink">
-                        {user.name}
-                      </p>
+                      <p className="font-semibold text-ink">{user.name}</p>
                       <p className="text-xs text-slate-500">
                         {user.employeeId || "—"} · {user.email}
                       </p>
@@ -247,9 +294,7 @@ const confirmStatusChange = async () => {
 
                     <td>{user.department || "—"}</td>
 
-                    <td>
-                      {user.role.replaceAll("_", " ")}
-                    </td>
+                    <td>{user.role.replaceAll("_", " ")}</td>
 
                     <td>
                       <span
@@ -262,26 +307,37 @@ const confirmStatusChange = async () => {
                         {user.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    
-<td>
-  {user.role === "ADMIN" ? (
-    <span className="text-xs text-slate-400">
-      Protected
-    </span>
-  ) : (
-    <Button
-      type="button"
-      variant="secondary"
-      size="sm"
-      loading={updatingId === user._id}
-      disabled={Boolean(updatingId)}
-      onClick={() => handleStatusChange(user)}
-    >
-      {user.isActive ? "Deactivate" : "Activate"}
-    </Button>
-  )}
-</td>
 
+                    <td>
+                      {user.role === "ADMIN" ? (
+                        <span className="text-xs text-slate-400">
+                          Protected
+                        </span>
+                      ) : (
+                        <div className="flex  gap-2">
+                            <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          loading={updatingId === user._id}
+                          disabled={Boolean(updatingId)}
+                          onClick={() => handleStatusChange(user)}
+                        >
+                          {user.isActive ? "Deactivate" : "Activate"}
+                        </Button>
+
+                         <Button
+    type="button"
+    variant="secondary"
+    size="sm"
+    onClick={() => openPermissionEditor(user)}
+  >
+    Permissions
+  </Button>
+                        </div>
+                      )}
+                    
+                    </td>
                   </tr>
                 ))
               )}
@@ -290,34 +346,124 @@ const confirmStatusChange = async () => {
         </div>
       </Card>
 
-      
-<ConfirmDialog
-  open={Boolean(pending)}
-  title={
-    pending?.isActive
-      ? "Deactivate user?"
-      : "Activate user?"
-  }
-  message={
-    pending
-      ? `${pending.name} (${pending.employeeId || pending.email}) will be ${
-          pending.isActive ? "deactivated" : "activated"
-        }.`
+      {permissionUser && (
+        <Card
+          title={`Permissions — ${permissionUser.name}`}
+          description="Additional permissions beyond the user's existing role."
+        >
+          <PermissionEditor
+            value={selectedPermissions}
+            onChange={setSelectedPermissions}
+            disabled={savingPermissions}
+          />
+
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={savingPermissions}
+              onClick={() => setPermissionUser(null)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="button"
+              disabled={savingPermissions}
+              onClick={savePermissions}
+            >
+              Review changes
+            </Button>
+          </div>
+        </Card>
+      )}
+
+<Modal
+  open={Boolean(permissionUser)}
+  title="Manage permissions"
+  description={
+    permissionUser
+      ? `${permissionUser.name} · ${
+          permissionUser.employeeId || permissionUser.email
+        }`
       : ""
   }
-  confirmLabel={
-    pending?.isActive ? "Deactivate" : "Activate"
+  size="md"
+  closeDisabled={savingPermissions || confirmPermissions}
+  onClose={closePermissionEditor}
+>
+  <div className="space-y-4">
+    <p className="text-xs text-slate-500">
+      Select additional permissions for this user.
+      Existing role permissions remain unchanged.
+    </p>
+
+    <PermissionEditor
+      value={selectedPermissions}
+      onChange={setSelectedPermissions}
+      disabled={savingPermissions}
+    />
+
+    <div className="flex justify-end gap-2 border-t border-line pt-4">
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={savingPermissions}
+        onClick={closePermissionEditor}
+      >
+        Cancel
+      </Button>
+
+      <Button
+        type="button"
+        disabled={savingPermissions}
+        onClick={() => setConfirmPermissions(true)}
+      >
+        Save changes
+      </Button>
+    </div>
+  </div>
+</Modal>
+
+      
+<ConfirmDialog
+  open={confirmPermissions}
+  title="Update user permissions?"
+  message={
+    permissionUser
+      ? `Save the selected permissions for ${permissionUser.name}?`
+      : ""
   }
-  confirmVariant={
-    pending?.isActive ? "danger" : "success"
-  }
-  loading={Boolean(updatingId)}
-  onConfirm={confirmStatusChange}
+  confirmLabel="Save permissions"
+  confirmVariant="success"
+  loading={savingPermissions}
+  onConfirm={savePermissions}
   onCancel={() => {
-    if (!updatingId) setPending(null);
+    if (!savingPermissions) {
+      setConfirmPermissions(false);
+    }
   }}
 />
 
+
+      <ConfirmDialog
+        open={Boolean(pending)}
+        title={pending?.isActive ? "Deactivate user?" : "Activate user?"}
+        message={
+          pending
+            ? `${pending.name} (${pending.employeeId || pending.email}) will be ${
+                pending.isActive ? "deactivated" : "activated"
+              }.`
+            : ""
+        }
+        confirmLabel={pending?.isActive ? "Deactivate" : "Activate"}
+        confirmVariant={pending?.isActive ? "danger" : "success"}
+        loading={Boolean(updatingId)}
+        onConfirm={confirmStatusChange}
+        onCancel={() => {
+          if (!updatingId) setPending(null);
+        }}
+      />
     </div>
   );
 };

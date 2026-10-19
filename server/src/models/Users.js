@@ -1,6 +1,8 @@
 
 const mongoose = require("mongoose");
-
+const {
+  PERMISSION_VALUES,
+} = require("../constants/permissions");
 const userSchema = new mongoose.Schema(
   {
     employeeId: {
@@ -44,6 +46,15 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    permissions: {
+  type: [
+    {
+      type: String,
+      enum: PERMISSION_VALUES,
+    },
+  ],
+  default: [],
+},
   },
   {
     timestamps: true,

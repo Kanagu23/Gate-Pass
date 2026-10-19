@@ -4,6 +4,9 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/Users");
 const mongoose = require("mongoose");
 const generateEmployeeId = require("../utils/generateEmployeeId");
+const {
+  PERMISSION_VALUES,
+} = require("../constants/permissions");
 
 const roles = ["ADMIN", "GATE_EMPLOYEE", "EMPLOYEE", "DIRECTOR"];
 
@@ -167,7 +170,7 @@ const getUsers = async (req, res) => {
   try {
     const users = await User.find()
       .select(
-        "_id employeeId name email phone department role isActive createdAt"
+        "_id employeeId name email phone department role isActive permissions createdAt"
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -248,11 +251,82 @@ const updateUserStatus = async (req, res) => {
   }
 };
 
+const updateUserPermissions = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { permissions } = req.body;
+
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    if (
+      !Array.isArray(permissions) ||
+      permissions.some(
+        (permission) =>
+          typeof permission !== "string" ||
+          !PERMISSION_VALUES.includes(permission)
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid permissions",
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Admin permissions cannot be modified.
+    if (user.role === "ADMIN") {
+      return res.status(403).json({
+        success: false,
+        message: "Admin permissions cannot be modified",
+      });
+    }
+
+    // Remove duplicate permissions.
+    user.permissions = [...new Set(permissions)];
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "User permissions updated successfully",
+      user: {
+        _id: user._id,
+        employeeId: user.employeeId,
+        name: user.name,
+        role: user.role,
+        permissions: user.permissions,
+      },
+    });
+  } catch (error) {
+    console.error("Update permissions error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to update user permissions",
+    });
+  }
+};
+
+
 module.exports = {
   login,
   logout,
   me,
   createUser,
   getUsers,
-  updateUserStatus
+  updateUserStatus,
+  updateUserPermissions
 };
