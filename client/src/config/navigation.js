@@ -1,13 +1,13 @@
-
 import {
+  Building2,
   ClipboardCheck,
   LayoutDashboard,
   ScanLine,
+  UserCog,
   UserPlus,
   Users,
 } from "lucide-react";
 
-// Default home route for each role
 export const roleHome = {
   ADMIN: "/admin",
   GATE_EMPLOYEE: "/gate",
@@ -15,7 +15,6 @@ export const roleHome = {
   DIRECTOR: "/director",
 };
 
-// Display names for roles
 export const roleLabels = {
   ADMIN: "Administrator",
   GATE_EMPLOYEE: "Gate Employee",
@@ -23,120 +22,124 @@ export const roleLabels = {
   DIRECTOR: "Director",
 };
 
-// Admin and Gate Employee navigation
-const frontDesk = (base) => [
-  {
-    label: "Dashboard",
-    path: base,
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Visitors",
-    path: `${base}/visitors`,
-    icon: Users,
-  },
-  {
-    label: "Register Visitor",
-    path: `${base}/visitors/register`,
-    icon: UserPlus,
-    hint: "Create a new visitor request",
-  },
-  {
-    label: "QR Check-Out",
-    path: `${base}/visitors/check-out`,
-    icon: ScanLine,
-    hint: "Scan a pass to record an exit",
-  },
-];
+/*
+ * Navigation is a list of groups. Each item may define:
+ *   hint   - short description; also surfaces it as a dashboard quick action
+ *   active - custom matcher (pathname) => boolean, for nested routes
+ * Items are active on an exact path match by default.
+ */
+const overview = (base) => ({
+  label: "Overview",
+  items: [{ label: "Dashboard", path: base, icon: LayoutDashboard }],
+});
 
-// Employee and Director navigation
-const approver = (base) => [
-  {
-    label: "Dashboard",
-    path: base,
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Pending Approvals",
-    path: `${base}/approvals`,
-    icon: ClipboardCheck,
-    hint: "Review visitors waiting for you",
-  },
-];
+const frontDesk = (base) => ({
+  label: "Front desk",
+  items: [
+    {
+      label: "Visitors",
+      path: `${base}/visitors`,
+      icon: Users,
+      active: (pathname) =>
+        pathname === `${base}/visitors` ||
+        new RegExp(`^${base}/visitors/[^/]+/pass$`).test(pathname),
+    },
+    {
+      label: "Register visitor",
+      path: `${base}/visitors/register`,
+      icon: UserPlus,
+      hint: "Create a new visitor request",
+    },
+    {
+      label: "Check-out",
+      path: `${base}/visitors/check-out`,
+      icon: ScanLine,
+      hint: "Scan a pass to record an exit",
+    },
+  ],
+});
 
-// Existing role-based navigation
-export const navigationByRole = {
-  ADMIN: frontDesk("/admin"),
-  GATE_EMPLOYEE: frontDesk("/gate"),
-  EMPLOYEE: approver("/employee"),
-  DIRECTOR: approver("/director"),
+const administration = {
+  label: "Administration",
+  items: [
+    {
+      label: "Users",
+      path: "/admin/users",
+      icon: UserCog,
+      active: (pathname) => pathname.startsWith("/admin/users"),
+    },
+    { label: "Departments", path: "/admin/departments", icon: Building2 },
+  ],
 };
 
-// Build grouped navigation for the Sidebar
+const requests = (base) => ({
+  label: "Requests",
+  items: [
+    {
+      label: "Approvals",
+      path: `${base}/approvals`,
+      icon: ClipboardCheck,
+      hint: "Review visitors waiting for you",
+    },
+  ],
+});
+
+export const navigationByRole = {
+  ADMIN: [overview("/admin"), frontDesk("/admin"), administration],
+  GATE_EMPLOYEE: [overview("/gate"), frontDesk("/gate")],
+  EMPLOYEE: [overview("/employee"), requests("/employee")],
+  DIRECTOR: [overview("/director"), requests("/director")],
+};
+
+export const isItemActive = (item, pathname) =>
+  item.active ? item.active(pathname) : pathname === item.path;
+
+/** Items worth surfacing as shortcuts on the dashboard. */
+
+export const quickActionsFor = (user) => {
+  if (!user) return [];
+
+  return getNavigationForUser(user)
+    .flatMap((group) => group.items)
+    .filter((item) => item.hint);
+};
+
+
+// Add optional navigation for employees/directors with explicit permission.
 export const getNavigationForUser = (user) => {
   if (!user) return [];
 
-  const items = navigationByRole[user.role] || [];
-
+  const groups = navigationByRole[user.role] || [];
   const canRegister =
     ["EMPLOYEE", "DIRECTOR"].includes(user.role) &&
-    user.permissions?.includes("visitor.register");
+    Array.isArray(user.permissions) &&
+    user.permissions.includes("visitor.register");
 
-  const menuItems = canRegister
-    ? [
-        ...items,
+  if (!canRegister) return groups;
+
+  return [
+    ...groups,
+    {
+      label: "Visitor management",
+      items: [
         {
-          label: "Register Visitor",
+          label: "Register visitor",
           path: "/visitor/register",
           icon: UserPlus,
           hint: "Create a new visitor request",
         },
-      ]
-    : items;
-
-  return [
-    {
-      label: "Main Menu",
-      items: menuItems,
+      ],
     },
   ];
 };
 
-// Dashboard quick actions
-export const quickActionsFor = (role) => {
-  return (navigationByRole[role] || []).filter(
-    (item) => item.hint
-  );
-};
-
-// Determine whether a menu item is active
-export const isItemActive = (pathname, itemPath) => {
-  if (!pathname || !itemPath) return false;
-
-  if (pathname === itemPath) return true;
-
-  // Dashboard should only highlight on exact match
-  if (Object.values(roleHome).includes(itemPath)) {
-    return false;
-  }
-
-  return pathname.startsWith(`${itemPath}/`);
-};
-
-// Resolve header title from pathname
+// Resolve page titles without changing existing navigation behavior.
 export const titleForPath = (pathname) => {
-  if (pathname === "/visitor/register") {
-    return "Register Visitor";
-  }
+  if (pathname === "/visitor/register") return "Register visitor";
+  if (/\/visitors\/[^/]+\/pass$/.test(pathname)) return "Visitor Pass";
 
-  if (/\/visitors\/[^/]+\/pass$/.test(pathname)) {
-    return "Visitor Pass";
-  }
+  const items = Object.values(navigationByRole)
+    .flatMap((groups) => groups.flatMap((group) => group.items));
 
-  const allItems = Object.values(navigationByRole).flat();
-
-  return (
-    allItems.find((item) => item.path === pathname)
-      ?.label || "Workspace"
-  );
+  return items.find((item) => item.path === pathname)?.label || "Workspace";
 };

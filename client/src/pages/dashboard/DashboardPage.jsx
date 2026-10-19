@@ -16,17 +16,20 @@ import Card from "../../components/common/Card";
 import PageHeader from "../../components/common/PageHeader";
 import { Skeleton } from "../../components/common/Skeleton";
 import useCountUp from "../../hooks/useCountUp";
+import { useAuth } from "../../context/AuthContext";
 import {
   getDashboardStats,
   getDashboardAnalytics,
   getRecentVisitors,
 } from "../../api/dashboard.api";
-import { useAuth } from "../../context/AuthContext";
-import { quickActionsFor } from "../../config/navigation";
-
+import {
+  quickActionsFor,
+  roleLabels,
+} from "../../config/navigation";
 import VisitorActivityChart from "../../components/dashboard/VisitorActivityChart";
 import VisitorStatusChart from "../../components/dashboard/VisitorStatusChart";
 import RecentVisitorsTable from "../../components/dashboard/RecentVisitorsTable";
+
 
 const STAT_ITEMS = [
   {
@@ -104,8 +107,10 @@ const greeting = () => {
 
 const DashboardPage = ({ role }) => {
   const { user } = useAuth();
+
+  const roleLabel = roleLabels[role] || "User";
   const isAdmin = role === "ADMIN";
-  const actions = quickActionsFor(role);
+const actions = quickActionsFor(user);
   const firstName = (user?.name || user?.employeeName || "").split(" ")[0];
 
   const [stats, setStats] = useState(null);
