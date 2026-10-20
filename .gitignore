@@ -10,3 +10,8 @@ server/dist/
 .idea/
 .DS_Store
 Thumbs.db
+# Local upgrade backups
+.gatepass-upgrade-backup/
+
+# Local database reset utilities
+server/tools/reset-and-bootstrap.js
