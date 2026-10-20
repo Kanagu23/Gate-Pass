@@ -6,6 +6,7 @@ import Avatar from "../common/Avatar";
 import Card from "../common/Card";
 import EmptyState from "../common/EmptyState";
 import StatusBadge from "../common/StatusBadge";
+import VisitorTimeCell from "./VisitorTimeCell";
 
 const formatDate = (value) =>
   value
@@ -26,7 +27,7 @@ const RecentVisitorsTable = ({
       padded={false}
       action={
         <Link
-          to="/admin/visitors"
+          to={viewAllPath}
           className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
         >
           View all
@@ -49,6 +50,7 @@ const RecentVisitorsTable = ({
                 <th>Visiting employee</th>
                 <th>Purpose</th>
                 <th>Status</th>
+                <th>IN / OUT</th>
                 <th>Registered</th>
               </tr>
             </thead>
@@ -87,6 +89,12 @@ const RecentVisitorsTable = ({
                   <td>
                     <StatusBadge status={visitor.status} />
                   </td>
+                  <td>
+  <VisitorTimeCell
+    inTime={visitor.inTime}
+    outTime={visitor.outTime}
+  />
+</td>
 
                   <td className="whitespace-nowrap text-xs text-slate-500">
                     {formatDate(visitor.createdAt)}

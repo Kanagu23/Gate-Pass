@@ -54,3 +54,13 @@ export const getVisitorHistory = async (status = "") => {
 
   return response.data;
 };
+
+
+export const correctVisitorTime = async (visitorId, payload) => {
+  const response = await api.patch(
+    `/visitors/${visitorId}/correct-time`,
+    payload
+  );
+
+  return response.data;
+};

@@ -322,7 +322,7 @@ const [
         </section>
       )}
 
-      {/* {actions.length > 0 && (
+      {actions.length > 0 && (
         <Card title="Quick actions" padded={false}>
           <div
             className={`grid divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0 ${
@@ -354,8 +354,15 @@ const [
             ))}
           </div>
         </Card>
-      )} */}
-
+      )}
+{["EMPLOYEE", "DIRECTOR"].includes(user?.role) && (
+    <Card title="Workspace">
+      <p className="text-sm text-slate-500">
+        Use the sidebar to review visitor approvals
+        and visitor history.
+      </p>
+    </Card>
+  )}
       {isAdmin && analytics && (
         <section
           aria-label="Visitor analytics"
@@ -380,7 +387,7 @@ const [
          <RecentVisitorsTable
   visitors={recentVisitors}
   viewAllPath={
-    isGateEmployee
+    user?.role === "GATE_EMPLOYEE"
       ? "/gate/visitors"
       : "/admin/visitors"
   }

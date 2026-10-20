@@ -140,7 +140,7 @@ useEffect(() => {
       <PageHeader
         backTo={dashboardPath}
         backLabel="Dashboard"
-        title="VISITOR REGISTER"
+        title="Vistor Register"
         description="Create a visitor request and send it to the visiting employee for approval."
       />
 

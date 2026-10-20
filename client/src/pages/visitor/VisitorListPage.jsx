@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useLocation } from "react-router-dom";
-import { Printer, RefreshCw, Search, UserPlus, Users, X } from "lucide-react";
+import { Printer, RefreshCw, Search, UserPlus, Users, X,Pencil } from "lucide-react";
+import EditVisitorTimeModal from "../../components/visitor/EditVisitorTimeModal";
 
 import { getVisitors } from "../../api/visitor.api";
 import Alert from "../../components/common/Alert";
@@ -12,6 +13,7 @@ import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import { TableSkeleton } from "../../components/common/Skeleton";
 import { buttonStyles } from "../../components/common/buttonStyles";
+import VisitorTimeCell from "../../components/dashboard/VisitorTimeCell";
 
 const STATUS_TABS = [
   { label: "All", value: "" },
@@ -30,30 +32,29 @@ const formatDate = (value) =>
     : "—";
 
 const VisitorListPage = () => {
+  const { user } = useAuth();
 
-const { user } = useAuth();
+const isAdmin = ["ADMIN", "SYSTEM_ADMIN"].includes(user?.role);
+  const isGateEmployee = user?.role === "GATE_EMPLOYEE";
+  const isFrontDesk = isAdmin || isGateEmployee;
 
-const isAdmin = user?.role === "ADMIN";
-const isGateEmployee = user?.role === "GATE_EMPLOYEE";
-const isFrontDesk = isAdmin || isGateEmployee;
+  const basePath = isAdmin ? "/admin" : "/gate";
 
-const basePath = isAdmin ? "/admin" : "/gate";
+  const canRegister =
+    isFrontDesk || user?.permissions?.includes("visitor.register");
 
-const canRegister =
-  isFrontDesk ||
-  user?.permissions?.includes("visitor.register");
-
-const registrationPath = isFrontDesk
-  ? `${basePath}/visitors/register`
-  : "/visitor/register";
-
+  const registrationPath = isFrontDesk
+    ? `${basePath}/visitors/register`
+    : "/visitor/register";
 
   const [visitors, setVisitors] = useState([]);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+const [editingVisitor, setEditingVisitor] = useState(null);
 
+const canEditTimes = isAdmin;
   const loadVisitors = useCallback(async () => {
     try {
       setLoading(true);
@@ -83,7 +84,11 @@ const registrationPath = isFrontDesk
         visitor.organization,
         visitor.visitingEmployee?.name,
         visitor.visitingEmployee?.employeeId,
-      ].some((value) => String(value || "").toLowerCase().includes(query))
+      ].some((value) =>
+        String(value || "")
+          .toLowerCase()
+          .includes(query),
+      ),
     );
   }, [visitors, search]);
 
@@ -92,22 +97,23 @@ const registrationPath = isFrontDesk
       <PageHeader
         title="Visitors"
         description="Track visitor requests, check-in status and passes."
-       
-actions={
-  canRegister ? (
-    <Link
-      to={registrationPath}
-      className={buttonStyles("primary", "md")}
-    >
-      <UserPlus size={14} />
-      Register visitor
-    </Link>
-  ) : null
-}
-
+        actions={
+          canRegister ? (
+            <Link
+              to={registrationPath}
+              className={buttonStyles("primary", "md")}
+            >
+              <UserPlus size={14} />
+              Register visitor
+            </Link>
+          ) : null
+        }
       />
 
-      <div className="rise rounded-card border border-line bg-white shadow-card" style={{ "--i": 1 }}>
+      <div
+        className="rise rounded-card border border-line bg-white shadow-card"
+        style={{ "--i": 1 }}
+      >
         {/* Toolbar */}
         <div className="flex flex-col gap-2.5 border-b border-line p-3 lg:flex-row lg:items-center">
           <div
@@ -204,7 +210,9 @@ actions={
                   <th>Visiting</th>
                   <th>Purpose</th>
                   <th>Status</th>
-                  <th>Registered</th>
+                  <th>IN / OUT</th>
+                  {/* <th>Registered</th> */}
+                  <th className="text-right">Actions</th>
                   <th className="text-right">Pass</th>
                 </tr>
               </thead>
@@ -240,39 +248,59 @@ actions={
                       </p>
                     </td>
 
-                    <td className="text-slate-600">{visitor.visitingPurpose}</td>
-
-                   
-<td>
-  <div className="space-y-1.5">
-    <StatusBadge status={visitor.status} />
-
-    {isAdmin && visitor.status === "REJECTED" && (
-      <div className="max-w-[260px]">
-        <p className="break-words text-[11px] leading-4 text-slate-600">
-          <span className="font-medium text-red-600">
-            Reason:
-          </span>{" "}
-          {visitor.rejectionReason || "Reason not recorded"}
-        </p>
-
-        {visitor.rejectedAt && (
-          <p className="mt-1 text-[10px] text-slate-400">
-            Rejected: {formatDate(visitor.rejectedAt)}
-          </p>
-        )}
-      </div>
-    )}
-  </div>
-</td>
-
-
-                    <td className="whitespace-nowrap text-xs text-slate-500">
-                      {formatDate(visitor.createdAt)}
+                    <td className="text-slate-600">
+                      {visitor.visitingPurpose}
                     </td>
 
+                    <td>
+                      <div className="space-y-1.5">
+                        <StatusBadge status={visitor.status} />
+
+                        {isAdmin && visitor.status === "REJECTED" && (
+                          <div className="max-w-[260px]">
+                            <p className="break-words text-[11px] leading-4 text-slate-600">
+                              <span className="font-medium text-red-600">
+                                Reason:
+                              </span>{" "}
+                              {visitor.rejectionReason || "Reason not recorded"}
+                            </p>
+
+                            {visitor.rejectedAt && (
+                              <p className="mt-1 text-[10px] text-slate-400">
+                                Rejected: {formatDate(visitor.rejectedAt)}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <VisitorTimeCell
+                        inTime={visitor.inTime}
+                        outTime={visitor.outTime}
+                      />
+                    </td>
+
+                    {/* <td className="whitespace-nowrap text-xs text-slate-500">
+                      {formatDate(visitor.createdAt)}
+                    </td> */}
+<td className="text-right">
+  {canEditTimes &&
+  ["CHECKED_IN", "CHECKED_OUT"].includes(visitor.status) ? (
+    <button
+      type="button"
+      onClick={() => setEditingVisitor(visitor)}
+      className="inline-flex items-center gap-1.5 rounded-control border border-line px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:border-brand hover:text-brand"
+    >
+      <Pencil size={12} />
+      Edit Time
+    </button>
+  ) : (
+    <span className="text-slate-300">—</span>
+  )}
+</td>
                     <td className="text-right">
-                      {isFrontDesk && visitor.status === "CHECKED_IN" ? (
+                      {isFrontDesk ? (
                         <Link
                           to={`${basePath}/visitors/${visitor._id}/pass`}
                           className={buttonStyles("soft", "sm")}
@@ -295,6 +323,11 @@ actions={
           Showing {filteredVisitors.length} of {visitors.length} visitors
         </div>
       </div>
+      <EditVisitorTimeModal
+  visitor={editingVisitor}
+  onClose={() => setEditingVisitor(null)}
+  onSaved={loadVisitors}
+/>
     </div>
   );
 };

@@ -126,6 +126,26 @@ rejectionReason: {
       type: Date,
       default: null,
     },
+    
+timeCorrections: {
+  type: [
+    {
+      previousInTime: { type: Date, default: null },
+      previousOutTime: { type: Date, default: null },
+      newInTime: { type: Date, default: null },
+      newOutTime: { type: Date, default: null },
+      reason: { type: String, required: true, maxlength: 500 },
+      correctedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+      correctedAt: { type: Date, default: Date.now },
+    },
+  ],
+  default: [],
+},
+
   },
   {
     timestamps: true,

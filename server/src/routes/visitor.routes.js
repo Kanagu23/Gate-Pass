@@ -14,7 +14,8 @@ const {
   checkOutByQR,
   getVisitorPass,
   getVisitors,
-  getVisitorHistory
+  getVisitorHistory,
+  correctVisitorTime
 } = require("../controllers/visitor.controller");
 const {
   allowRoleOrPermission,
@@ -97,7 +98,7 @@ router.get(
   "/",
   authenticate,
   allowRoleOrPermission(
-    ["ADMIN", "GATE_EMPLOYEE"],
+    ["ADMIN", "GATE_EMPLOYEE" ,"SYSTEM_ADMIN"],
     PERMISSIONS.VISITOR_VIEW
   ),
   getVisitors
@@ -108,6 +109,14 @@ router.get(
   authenticate,
   allowRoles("EMPLOYEE", "DIRECTOR"),
   getVisitorHistory
+);
+
+
+router.patch(
+  "/:id/correct-time",
+  authenticate,
+  allowRoles("SYSTEM_ADMIN", "ADMIN"),
+  correctVisitorTime
 );
 
 module.exports = router;

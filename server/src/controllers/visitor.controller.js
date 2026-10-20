@@ -738,10 +738,11 @@ const filter = status ? { status } : {};
 // Preserve existing Employee/Director assigned-visitor filtering below.
 if (req.user.role !== "SYSTEM_ADMIN" && req.user.division) filter.visitingDivision = req.user.division;
 
-const isFrontDesk = ["ADMIN", "GATE_EMPLOYEE"].includes(
-  req.user.role
-);
-
+const isFrontDesk = [
+  "SYSTEM_ADMIN",
+  "ADMIN",
+  "GATE_EMPLOYEE",
+].includes(req.user.role);
 // Employees and Directors can only view visitors
 // assigned to them, even with visitor.view permission.
 if (!isFrontDesk) {
@@ -827,6 +828,189 @@ const getVisitorHistory = async (req, res) => {
 
 
 
+const correctVisitorTime = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { inTime, outTime, reason } = req.body || {};
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid visitor ID",
+      });
+    }
+
+    if (
+      typeof reason !== "string" ||
+      reason.trim().length < 10 ||
+      reason.trim().length > 500
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide a correction reason (10–500 characters).",
+      });
+    }
+
+    const parseTime = (value) => {
+      if (value === null) return null;
+
+      if (
+        typeof value !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
+      ) {
+        return undefined;
+      }
+
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? undefined : date;
+    };
+
+    const newInTime = parseTime(inTime);
+    const newOutTime = parseTime(outTime);
+
+    if (
+      newInTime === undefined ||
+      newOutTime === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide valid ISO timestamps with a timezone.",
+      });
+    }
+
+    const filter = {
+      _id: id,
+      ...(req.user.role === "ADMIN"
+        ? { visitingDivision: req.user.division }
+        : {}),
+    };
+
+    if (req.user.role === "ADMIN" && !req.user.division) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account has no assigned division.",
+      });
+    }
+
+    const visitor = await Visitor.findOne(filter);
+
+    if (!visitor) {
+      return res.status(404).json({
+        success: false,
+        message: "Visitor not found or access denied.",
+      });
+    }
+
+    if (!["CHECKED_IN", "CHECKED_OUT"].includes(visitor.status)) {
+      return res.status(409).json({
+        success: false,
+        message: "Only checked-in or checked-out visits can be corrected.",
+      });
+    }
+
+    if (
+      !newInTime ||
+      (visitor.status === "CHECKED_IN" && newOutTime !== null) ||
+      (visitor.status === "CHECKED_OUT" && !newOutTime)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Times must be consistent with visitor status.",
+      });
+    }
+
+    if (
+      newOutTime &&
+      newOutTime.getTime() < newInTime.getTime()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "OUT time cannot be earlier than IN time.",
+      });
+    }
+
+    const now = Date.now();
+
+    if (
+      newInTime.getTime() > now ||
+      (newOutTime && newOutTime.getTime() > now)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Visit times cannot be in the future.",
+      });
+    }
+
+    if (
+      visitor.inTime?.getTime() === newInTime.getTime() &&
+      (visitor.outTime?.getTime() ?? null) ===
+        (newOutTime?.getTime() ?? null)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "No time changes were provided.",
+      });
+    }
+
+    const updatedVisitor = await Visitor.findOneAndUpdate(
+      {
+        ...filter,
+        status: visitor.status,
+        inTime: visitor.inTime,
+        outTime: visitor.outTime,
+      },
+      {
+        $set: {
+          inTime: newInTime,
+          outTime: newOutTime,
+        },
+        $push: {
+          timeCorrections: {
+            previousInTime: visitor.inTime,
+            previousOutTime: visitor.outTime,
+            newInTime,
+            newOutTime,
+            reason: reason.trim(),
+            correctedBy: req.user._id,
+            correctedAt: new Date(),
+          },
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+        projection: {
+          visitorId: 1,
+          name: 1,
+          status: 1,
+          inTime: 1,
+          outTime: 1,
+        },
+      }
+    );
+
+    if (!updatedVisitor) {
+      return res.status(409).json({
+        success: false,
+        message: "Visitor was updated by another request. Refresh and retry.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Visitor times corrected successfully.",
+      visitor: updatedVisitor,
+    });
+  } catch (error) {
+    console.error("Visitor time correction error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to correct visitor times.",
+    });
+  }
+};
+
 
 module.exports = {
   registerVisitor,
@@ -840,5 +1024,6 @@ module.exports = {
   getVisitorPass,
   getVisitors,
   getVisitorHistory,
+  correctVisitorTime
   
 };

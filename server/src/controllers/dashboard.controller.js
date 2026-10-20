@@ -1,9 +1,6 @@
-
 const Visitor = require("../models/Visitor");
 
-const {
-  buildDashboardFilter,
-} = require("../utils/dashboardFilters");
+const { buildDashboardFilter } = require("../utils/dashboardFilters");
 
 const STATUSES = [
   "PENDING",
@@ -31,10 +28,7 @@ const handleDashboardError = (error, res) => {
 
 const getDashboardStats = async (req, res) => {
   try {
-    const { match } = await buildDashboardFilter(
-      req.user,
-      req.query
-    );
+    const { match } = await buildDashboardFilter(req.user, req.query);
 
     const [
       totalVisitors,
@@ -79,102 +73,100 @@ const getDashboardStats = async (req, res) => {
 
 const getDashboardAnalytics = async (req, res) => {
   try {
-    const { match, start, end } =
-      await buildDashboardFilter(req.user, req.query);
-const [
-  activity,
-  statusCounts,
-  purposeCounts,
-  divisionCounts,
-  departmentCounts,
-]= await Promise.all([
-        Visitor.aggregate([
-          { $match: match },
-          {
-            $group: {
-              _id: {
-                $dateToString: {
-                  format: "%Y-%m-%d",
-                  date: "$createdAt",
-                  timezone: "UTC",
-                },
+    const { match, start, end } = await buildDashboardFilter(
+      req.user,
+      req.query,
+    );
+    const [
+      activity,
+      statusCounts,
+      purposeCounts,
+      divisionCounts,
+      departmentCounts,
+    ] = await Promise.all([
+      Visitor.aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$createdAt",
+                timezone: "UTC",
               },
-              visitors: { $sum: 1 },
             },
+            visitors: { $sum: 1 },
           },
-          { $sort: { _id: 1 } },
-        ]),
+        },
+        { $sort: { _id: 1 } },
+      ]),
 
-        Visitor.aggregate([
-          { $match: match },
-          {
-            $group: {
-              _id: "$status",
-              count: { $sum: 1 },
+      Visitor.aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+
+      Visitor.aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: "$visitingPurpose",
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1 } },
+      ]),
+
+      Visitor.aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: "$visitingDivision",
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1, _id: 1 } },
+      ]),
+
+      Visitor.aggregate([
+        { $match: match },
+
+        {
+          $lookup: {
+            from: "users",
+            localField: "visitingEmployee",
+            foreignField: "_id",
+            as: "employee",
+          },
+        },
+
+        {
+          $unwind: {
+            path: "$employee",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        {
+          $group: {
+            _id: {
+              $ifNull: ["$employee.department", "UNASSIGNED"],
             },
+            count: { $sum: 1 },
           },
-        ]),
+        },
 
-        Visitor.aggregate([
-          { $match: match },
-          {
-            $group: {
-              _id: "$visitingPurpose",
-              count: { $sum: 1 },
-            },
-          },
-          { $sort: { count: -1 } },
-        ]),
-        
-Visitor.aggregate([
-  { $match: match },
-  {
-    $group: {
-      _id: "$visitingDivision",
-      count: { $sum: 1 },
-    },
-  },
-  { $sort: { count: -1, _id: 1 } },
-]),
-
-Visitor.aggregate([
-  { $match: match },
-
-  {
-    $lookup: {
-      from: "users",
-      localField: "visitingEmployee",
-      foreignField: "_id",
-      as: "employee",
-    },
-  },
-
-  {
-    $unwind: {
-      path: "$employee",
-      preserveNullAndEmptyArrays: true,
-    },
-  },
-
-  {
-    $group: {
-      _id: {
-        $ifNull: ["$employee.department", "UNASSIGNED"],
-      },
-      count: { $sum: 1 },
-    },
-  },
-
-  { $sort: { count: -1, _id: 1 } },
-]),
-
-      ]);
+        { $sort: { count: -1, _id: 1 } },
+      ]),
+    ]);
 
     const activityMap = new Map(
-      activity.map((item) => [
-        item._id,
-        item.visitors,
-      ])
+      activity.map((item) => [item._id, item.visitors]),
     );
 
     const dailyActivity = [];
@@ -193,18 +185,13 @@ Visitor.aggregate([
     }
 
     const statusMap = new Map(
-      statusCounts.map((item) => [
-        item._id,
-        item.count,
-      ])
+      statusCounts.map((item) => [item._id, item.count]),
     );
 
-    const statusDistribution = STATUSES.map(
-      (status) => ({
-        status,
-        count: statusMap.get(status) || 0,
-      })
-    );
+    const statusDistribution = STATUSES.map((status) => ({
+      status,
+      count: statusMap.get(status) || 0,
+    }));
 
     return res.json({
       success: true,
@@ -212,18 +199,17 @@ Visitor.aggregate([
         dailyActivity,
         statusDistribution,
         divisionDistribution: divisionCounts.map((item) => ({
-  division: item._id || "UNASSIGNED",
-  count: item.count,
-})),departmentDistribution: departmentCounts.map((item) => ({
-  department: item._id || "UNASSIGNED",
-  count: item.count,
-})),
-        purposeDistribution: purposeCounts.map(
-          (item) => ({
-            purpose: item._id || "Other",
-            count: item.count,
-          })
-        ),
+          division: item._id || "UNASSIGNED",
+          count: item.count,
+        })),
+        departmentDistribution: departmentCounts.map((item) => ({
+          department: item._id || "UNASSIGNED",
+          count: item.count,
+        })),
+        purposeDistribution: purposeCounts.map((item) => ({
+          purpose: item._id || "Other",
+          count: item.count,
+        })),
       },
     });
   } catch (error) {
@@ -233,19 +219,13 @@ Visitor.aggregate([
 
 const getRecentVisitors = async (req, res) => {
   try {
-    const { match } = await buildDashboardFilter(
-      req.user,
-      req.query
-    );
+    const { match } = await buildDashboardFilter(req.user, req.query);
 
     const visitors = await Visitor.find(match)
       .select(
-        "visitorId name visitingPurpose visitingEmployee status createdAt"
-      )
-      .populate(
-        "visitingEmployee",
-        "name employeeId department"
-      )
+  "visitorId name visitingPurpose visitingEmployee status createdAt inTime outTime"
+)
+      .populate("visitingEmployee", "name employeeId department")
       .sort({ createdAt: -1, _id: -1 })
       .limit(10)
       .lean();

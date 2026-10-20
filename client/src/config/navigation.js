@@ -85,12 +85,13 @@ const requests = (base) => ({
       label: "Approvals",
       path: `${base}/approvals`,
       icon: ClipboardCheck,
-      hint: "Review visitors waiting for you",
+      hint: "Review pending visitor approvals",
     },
     {
       label: "Visitor history",
       path: `${base}/history`,
       icon: History,
+      hint: "View previous visitor requests",
     },
   ],
 });
@@ -101,8 +102,8 @@ export const navigationByRole = {
   DIVISION_HR: [overview("/admin"), administration],
   ADMIN: [overview("/admin"), frontDesk("/admin"), administration],
   GATE_EMPLOYEE: [overview("/gate"), frontDesk("/gate")],
-  EMPLOYEE: [overview("/employee"), requests("/employee")],
-  DIRECTOR: [overview("/director"), requests("/director")],
+  EMPLOYEE: [requests("/employee")],
+  DIRECTOR: [ requests("/director")],
 };
 
 export const isItemActive = (item, pathname) =>

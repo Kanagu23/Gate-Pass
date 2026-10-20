@@ -16,6 +16,7 @@ import EmptyState from "../../components/common/EmptyState";
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import { TableSkeleton } from "../../components/common/Skeleton";
+import VisitorTimeCell from "../../components/dashboard/VisitorTimeCell";
 
 const STATUS_TABS = [
   { label: "All", value: "" },
@@ -273,15 +274,12 @@ const VisitorHistoryPage = () => {
                     <td className="whitespace-nowrap text-xs text-slate-500">
                       {formatDate(visitor.createdAt)}
                     </td>
-
-                    <td className="text-xs text-slate-500">
-                      <p>
-                        In: {formatDate(visitor.inTime)}
-                      </p>
-                      <p className="mt-1">
-                        Out: {formatDate(visitor.outTime)}
-                      </p>
-                    </td>
+<td>
+  <VisitorTimeCell
+    inTime={visitor.inTime}
+    outTime={visitor.outTime}
+  />
+</td>
                   </tr>
                 ))}
               </tbody>
