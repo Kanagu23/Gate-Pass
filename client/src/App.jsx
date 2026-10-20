@@ -190,54 +190,55 @@ const AppRoutes = () => {
       </Route>
 
       {/* EMPLOYEE */}
-      <Route
-        element={
-          <ProtectedRoute
-            allowedRoles={["EMPLOYEE"]}
-          />
-        }
-      >
-        <Route element={<AppLayout />}>
-          <Route
-            path="/employee"
-            element={<DashboardPage role="EMPLOYEE" />}
-          />
+      
+<Route
+  element={
+    <ProtectedRoute allowedRoles={["EMPLOYEE"]} />
+  }
+>
+  <Route element={<AppLayout />}>
+    <Route
+      path="/employee"
+      element={<DashboardPage role="EMPLOYEE" />}
+    />
 
-          <Route
-            path="/employee/approvals"
-            element={<VisitorApprovalPage />}
-          />
-        </Route>
-        <Route
-  path="/employee/history"
-  element={<VisitorHistoryPage />}
-/>
-      </Route>
+    <Route
+      path="/employee/approvals"
+      element={<VisitorApprovalPage />}
+    />
 
-      {/* DIRECTOR */}
-      <Route
-        element={
-          <ProtectedRoute
-            allowedRoles={["DIRECTOR"]}
-          />
-        }
-      >
-        <Route element={<AppLayout />}>
-          <Route
-            path="/director"
-            element={<DashboardPage role="DIRECTOR" />}
-          />
+    <Route
+      path="/employee/history"
+      element={<VisitorHistoryPage />}
+    />
+  </Route>
+</Route>
 
-          <Route
-            path="/director/approvals"
-            element={<VisitorApprovalPage />}
-          />
-        </Route>
-        <Route
-  path="/director/history"
-  element={<VisitorHistoryPage />}
-/>
-      </Route>
+
+     
+{/* DIRECTOR */}
+<Route
+  element={
+    <ProtectedRoute allowedRoles={["DIRECTOR"]} />
+  }
+>
+  <Route element={<AppLayout />}>
+    <Route
+      path="/director"
+      element={<DashboardPage role="DIRECTOR" />}
+    />
+
+    <Route
+      path="/director/approvals"
+      element={<VisitorApprovalPage />}
+    />
+
+    <Route
+      path="/director/history"
+      element={<VisitorHistoryPage />}
+    />
+  </Route>
+</Route>
 
       {/* PERMISSION-BASED VISITOR REGISTRATION */}
       <Route

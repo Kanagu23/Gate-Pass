@@ -1,4 +1,3 @@
-
 import {
   Document,
   Page,
@@ -8,332 +7,279 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 
-const colors = {
+// Existing Gate Pass palette; styled to match VisitorPassPage.jsx.
+const COLORS = {
+  background: "#F5F7FB",
+  white: "#FFFFFF",
   navy: "#10132E",
   blue: "#4169E8",
-  white: "#FFFFFF",
-  background: "#F5F7FB",
-  text: "#222B3D",
   muted: "#64748B",
   border: "#E2E8F0",
+  softBlue: "#EFF6FF",
+  softCyan: "#CFFAFE",
 };
 
 const styles = StyleSheet.create({
   page: {
-    backgroundColor: colors.background,
-    padding: 32,
+    paddingTop: 31,
+    paddingHorizontal: 34,
+    paddingBottom: 26,
+    backgroundColor: COLORS.background,
     fontFamily: "Helvetica",
-    color: colors.text,
+    color: COLORS.navy,
+    fontSize: 9,
   },
-  pass: {
-    backgroundColor: colors.white,
+  overline: { fontSize: 8, color: COLORS.muted, marginBottom: 6 },
+  title: { fontSize: 18, fontWeight: "bold", marginBottom: 4 },
+  headerDivision: { fontSize: 9, color: COLORS.muted, marginBottom: 14 },
+  card: {
+    backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: COLORS.border,
+    borderRadius: 7,
   },
-  header: {
-    backgroundColor: colors.navy,
-    padding: 22,
+  summary: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 19,
-    fontWeight: "bold",
-    color: colors.white,
-  },
-  headerSubtitle: {
-    fontSize: 9,
-    color: "#CBD5E1",
-    marginTop: 5,
-  },
-  headerLabel: {
-    fontSize: 9,
-    color: colors.white,
-    backgroundColor: colors.blue,
-    padding: 8,
-  },
-  accent: {
-    height: 4,
-    backgroundColor: colors.blue,
-  },
-  content: {
-    padding: 22,
-  },
-  sectionTitle: {
-    fontSize: 10,
-    fontWeight: "bold",
-    color: colors.navy,
-    marginBottom: 13,
-    paddingBottom: 7,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  visitorRow: {
-    flexDirection: "row",
-    marginBottom: 20,
-  },
-  photo: {
-    width: 80,
-    height: 95,
-    objectFit: "cover",
-    marginRight: 18,
-    backgroundColor: colors.background,
-  },
-  details: {
-    flex: 1,
-  },
-  visitorName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: colors.navy,
-    marginBottom: 9,
-  },
-  field: {
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 8,
-    color: colors.muted,
-    marginBottom: 3,
-  },
-  value: {
-    fontSize: 10,
-    color: colors.text,
-  },
-  grid: {
-    flexDirection: "row",
-    marginBottom: 15,
-  },
-  gridItem: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  employeeSection: {
     padding: 15,
-    backgroundColor: colors.background,
-    marginBottom: 20,
+    marginBottom: 13,
   },
-  qrSection: {
-    flexDirection: "row",
+  avatar: {
+    height: 60,
+    width: 54,
+    borderRadius: 5,
+    backgroundColor: COLORS.softCyan,
     alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 18,
+    justifyContent: "center",
+    marginRight: 12,
   },
-  qrImage: {
-    width: 110,
-    height: 110,
-    marginRight: 20,
+  initials: { fontSize: 15, fontWeight: "bold", color: "#0E7490" },
+  visitorPhoto: { height: 60, width: 54, objectFit: "cover", borderRadius: 5, marginRight: 12 },
+  statusColumn: { alignItems: "flex-end", marginLeft: 8, maxWidth: 150 },
+  checkedInTime: { color: COLORS.muted, fontSize: 8, marginTop: 6, textAlign: "right", lineHeight: 1.35 },
+  summaryContent: { flex: 1 },
+  visitorName: { fontSize: 12, fontWeight: "bold", marginBottom: 5 },
+  passId: { fontSize: 9, color: COLORS.muted },
+  status: {
+    color: COLORS.blue,
+    fontSize: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    borderRadius: 10,
+    backgroundColor: COLORS.softBlue,
+    alignSelf: "flex-start",
   },
-  qrDetails: {
-    flex: 1,
-  },
-  qrTitle: {
-    fontSize: 12,
+  columns: { flexDirection: "row", marginBottom: 13 },
+  halfCard: { flex: 1 },
+  columnGap: { width: 13 },
+  cardTitle: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 10,
     fontWeight: "bold",
-    color: colors.navy,
-    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  qrDescription: {
+  cardBody: { paddingHorizontal: 14, paddingVertical: 5 },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    paddingVertical: 9,
+    borderBottomWidth: 0.6,
+    borderBottomColor: COLORS.border,
+  },
+  noBorder: { borderBottomWidth: 0 },
+  detailLabel: { width: "38%", fontSize: 8, color: COLORS.muted, paddingRight: 6 },
+  detailValue: {
+    width: "62%",
     fontSize: 9,
-    color: colors.muted,
-    lineHeight: 1.5,
-    marginBottom: 10,
+    color: COLORS.navy,
+    textAlign: "right",
+    fontWeight: "bold",
+    lineHeight: 1.3,
   },
+  verification: { padding: 14, flexDirection: "row", alignItems: "center" },
+  qrFrame: {
+    width: 100,
+    height: 100,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 5,
+    padding: 5,
+    marginRight: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qr: { width: 88, height: 88 },
+  verifyText: { flex: 1 },
+  verifyHeading: { fontSize: 10, fontWeight: "bold", marginBottom: 6 },
+  verifyCaption: { fontSize: 8, color: COLORS.muted, lineHeight: 1.5 },
+  signatureRow: { flexDirection: "row", alignItems: "flex-end", marginTop: 21 },
+  signatureBlock: { width: "48%", marginRight: "4%", alignItems: "center" },
+  signatureRule: {
+    width: "100%",
+    height: 30,
+    borderBottomWidth: 1,
+    borderBottomColor: "#94A3B8",
+    marginBottom: 6,
+  },
+  signatureImage: { width: 120, height: 30, objectFit: "contain", marginBottom: 6 },
+  signatureLabel: { fontSize: 8, color: COLORS.muted },
   footer: {
     marginTop: 18,
-    textAlign: "center",
-    fontSize: 8,
-    color: colors.muted,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    fontSize: 7,
+    color: COLORS.muted,
+    lineHeight: 1.5,
   },
 });
 
-const Field = ({ label, value }) => (
-  <View style={styles.field}>
-    <Text style={styles.label}>{label}</Text>
-    <Text style={styles.value}>{value || "—"}</Text>
+const display = (value) =>
+  value === undefined || value === null || value === "" ? "—" : String(value);
+
+const dateTime = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Kolkata",
+      });
+};
+
+const initialsFor = (name) => {
+  const parts = String(name || "V").trim().split(/\s+/).filter(Boolean);
+  return parts.length === 1
+    ? parts[0].slice(0, 2).toUpperCase()
+    : `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
+
+const DetailRow = ({ label, value, last = false }) => (
+  <View style={[styles.detailRow, last ? styles.noBorder : {}]}>
+    <Text style={styles.detailLabel}>{label}</Text>
+    <Text style={styles.detailValue}>{display(value)}</Text>
   </View>
 );
 
-const formatDate = (value) => {
-  if (!value) return "—";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-
-  return date.toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Kolkata",
-  });
-};
-
 const VisitorPassPDF = ({ visitor }) => {
-  const employee = visitor.visitingEmployee || {};
+  const host = visitor?.visitingEmployee || {};
+  const maskedProof = visitor?.idProofMasked || "—";
+  const signature = host.signature || host.signatureUrl || "";
 
   return (
     <Document
-      title={`Visitor Pass - ${visitor.visitorId}`}
-      author="Gate Pass Management System"
+      title={`Visitor Pass - ${display(visitor?.visitorId)}`}
+      author="Gate Pass Visitor Management System"
     >
-      <Page size="A4" style={styles.page}>
-        <View style={styles.pass}>
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.headerTitle}>
-                GATE PASS
-              </Text>
-              <Text style={styles.headerSubtitle}>
-                KHGROUP | Visitor Management System
-              </Text>
-            </View>
+      <Page size="A4" style={styles.page} wrap={false}>
+        <Text style={styles.overline}>KH EXPORTS INDIA PRIVATE LIMITED</Text>
+        <Text style={styles.title}>Visitor Pass</Text>
+        <Text style={styles.headerDivision}>
+          Visiting division: {display(visitor?.visitingDivision)}
+        </Text>
 
-            <Text style={styles.headerLabel}>
-              VISITOR PASS
+        <View style={[styles.card, styles.summary]}>
+          {visitor?.profilePhoto ? (
+            <Image src={visitor.profilePhoto} style={styles.visitorPhoto} />
+          ) : (
+            <View style={[styles.avatar, { marginRight: 12 }]}>
+              <Text style={styles.initials}>{initialsFor(visitor?.name)}</Text>
+            </View>
+          )}
+          <View style={styles.summaryContent}>
+            <Text style={styles.visitorName}>{display(visitor?.name)}</Text>
+            <Text style={styles.passId}>Pass ID  {display(visitor?.visitorId)}</Text>
+          </View>
+          <View style={styles.statusColumn}>
+            <Text style={styles.status}>
+              {visitor?.status === "CHECKED_IN" ? "Checked In" : display(visitor?.status)}
+            </Text>
+            <Text style={styles.checkedInTime}>
+              Checked in: {dateTime(visitor?.inTime)}
             </Text>
           </View>
+        </View>
 
-          <View style={styles.accent} />
-
-          <View style={styles.content}>
-            <Text style={styles.sectionTitle}>
-              VISITOR INFORMATION
-            </Text>
-
-            <View style={styles.visitorRow}>
-              {visitor.profilePhoto ? (
-                <Image
-                  src={visitor.profilePhoto}
-                  style={styles.photo}
-                />
-              ) : null}
-
-              <View style={styles.details}>
-                <Text style={styles.visitorName}>
-                  {visitor.name}
-                </Text>
-
-                <Field
-                  label="Visitor ID"
-                  value={visitor.visitorId}
-                />
-
-                <Field
-                  label="Mobile"
-                  value={visitor.mobile}
-                />
-              </View>
-            </View>
-
-            <View style={styles.grid}>
-              <View style={styles.gridItem}>
-                <Field
-                  label="Organization"
-                  value={visitor.organization}
-                />
-              </View>
-
-              <View style={styles.gridItem}>
-                <Field
-                  label="Purpose of Visit"
-                  value={visitor.visitingPurpose}
-                />
-              </View>
-            </View>
-
-            <Text style={styles.sectionTitle}>
-              VISITING EMPLOYEE
-            </Text>
-
-            <View style={styles.employeeSection}>
-              <View style={styles.grid}>
-                <View style={styles.gridItem}>
-                  <Field
-                    label="Employee Name"
-                    value={employee.name}
-                  />
-                </View>
-
-                <View style={styles.gridItem}>
-                  <Field
-                    label="Employee ID"
-                    value={employee.employeeId}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.grid}>
-                <View style={styles.gridItem}>
-                  <Field
-                    label="Department"
-                    value={employee.department}
-                  />
-                </View>
-
-                <View style={styles.gridItem}>
-                  <Field
-                    label="Phone"
-                    value={employee.phone}
-                  />
-                </View>
-              </View>
-
-              <Field
-                label="Email"
-                value={employee.email}
+        <View style={styles.columns}>
+          <View style={[styles.card, styles.halfCard]}>
+            <Text style={styles.cardTitle}>Visitor</Text>
+            <View style={styles.cardBody}>
+              <DetailRow label="Visitor ID" value={visitor?.visitorId} />
+              <DetailRow label="Name" value={visitor?.name} />
+              <DetailRow label="Mobile" value={visitor?.mobile} />
+              <DetailRow label="Organization" value={visitor?.organization} />
+              <DetailRow label="Purpose" value={visitor?.visitingPurpose} />
+              <DetailRow
+                label="ID proof"
+                value={`${display(visitor?.idProofType)}${maskedProof !== "—" ? ` · ${maskedProof}` : ""}`}
+                last
               />
             </View>
+          </View>
 
-            <Text style={styles.sectionTitle}>
-              PASS VALIDITY
-            </Text>
+          <View style={styles.columnGap} />
 
-            <View style={styles.grid}>
-              <View style={styles.gridItem}>
-                <Field
-                  label="Check-In Time"
-                  value={formatDate(visitor.inTime)}
-                />
-              </View>
-
-              <View style={styles.gridItem}>
-                <Field
-                  label="Valid Until"
-                  value={formatDate(visitor.passExpiresAt)}
-                />
-              </View>
-            </View>
-
-            <View style={styles.qrSection}>
-              <Image
-                src={visitor.qrCode}
-                style={styles.qrImage}
-              />
-
-              <View style={styles.qrDetails}>
-                <Text style={styles.qrTitle}>
-                  SCAN FOR VERIFICATION
-                </Text>
-
-                <Text style={styles.qrDescription}>
-                  Present this QR code to the gate
-                  employee during exit verification.
-                </Text>
-
-                <Field
-                  label="Pass Number"
-                  value={visitor.visitorId}
-                />
-              </View>
+          <View style={[styles.card, styles.halfCard]}>
+            <Text style={styles.cardTitle}>Visiting employee</Text>
+            <View style={styles.cardBody}>
+              <DetailRow label="Name" value={host.name} />
+              <DetailRow label="Employee ID" value={host.employeeId} />
+              <DetailRow label="Department" value={host.department} />
+              <DetailRow label="Phone" value={host.phone} />
+              <DetailRow label="Email" value={host.email} />
+              <DetailRow label="Valid until" value={dateTime(visitor?.passExpiresAt)} last />
             </View>
           </View>
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Pass verification</Text>
+          <View style={styles.verification}>
+            <View style={styles.qrFrame}>
+              {visitor?.qrCode ? (
+                <Image src={visitor.qrCode} style={styles.qr} />
+              ) : (
+                <Text style={styles.verifyCaption}>QR unavailable</Text>
+              )}
+            </View>
+            <View style={styles.verifyText}>
+              <Text style={styles.verifyHeading}>Scan this QR code at the gate during exit.</Text>
+              <Text style={styles.verifyCaption}>
+                This secure code is linked to the approved visitor pass and is used for checkout.
+              </Text>
+              <Text style={styles.verifyCaption}>
+                Expiry: {dateTime(visitor?.passExpiresAt)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.signatureRow}>
+          <View style={styles.signatureBlock}>
+            {signature ? (
+              <Image src={signature} style={styles.signatureImage} />
+            ) : (
+              <View style={styles.signatureRule} />
+            )}
+            <Text style={styles.signatureLabel}>Visiting employee signature</Text>
+          </View>
+          <View style={styles.signatureBlock}>
+            <View style={styles.signatureRule} />
+            <Text style={styles.signatureLabel}>Gate officer / verification</Text>
+          </View>
+        </View>
+
         <Text style={styles.footer}>
-          This pass is issued for authorized visitor
-          access only. Please return or dispose of
-          it securely after your visit.
+          This pass is issued for the stated visit only and must be verified at exit.
+          Follow all site safety and security instructions. Do not share the QR code.
         </Text>
       </Page>
     </Document>

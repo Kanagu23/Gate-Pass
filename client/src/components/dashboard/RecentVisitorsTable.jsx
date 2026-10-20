@@ -15,7 +15,10 @@ const formatDate = (value) =>
       })
     : "—";
 
-const RecentVisitorsTable = ({ visitors = [] }) => {
+const RecentVisitorsTable = ({
+  visitors = [],
+  viewAllPath = "/admin/visitors",
+}) => {
   return (
     <Card
       title="Recent visitors"

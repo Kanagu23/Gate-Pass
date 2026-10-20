@@ -164,6 +164,8 @@ useEffect(() => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <Card title="Visitor information" className="rise" style={{ "--i": 1 }}>
           <div className="grid gap-3.5 sm:grid-cols-2">
+                        <div className="sm:col-span-2"><PhotoCapture label="Capture visitor photograph" value={form.profilePhoto} onChange={(photo) => setForm((old) => ({ ...old, profilePhoto: photo }))} /></div>
+
             <Input id="name" name="name" label="Full name" value={form.name} onChange={updateField} required />
             <Input id="mobile" name="mobile" label="Mobile number" type="tel" value={form.mobile} onChange={updateField} required />
             <Input id="email" name="email" label="Email address" type="email" value={form.email} onChange={updateField} />
@@ -181,7 +183,6 @@ useEffect(() => {
             <Input id="country" name="country" label="Country" value={form.country} onChange={updateField} required />
             <Input id="state" name="state" label="State" value={form.state} onChange={updateField} required />
             <Input id="pinCode" name="pinCode" label="PIN / Postal code" value={form.pinCode} onChange={updateField} required />
-            <div className="sm:col-span-2"><PhotoCapture label="Capture visitor photograph" value={form.profilePhoto} onChange={(photo) => setForm((old) => ({ ...old, profilePhoto: photo }))} /></div>
 
             <Select
               id="visitingPurpose"

@@ -117,7 +117,7 @@ if (!canRegister) {
       _id: visitingEmployee,
       role: { $in: ["EMPLOYEE", "DIRECTOR"] },
       isActive: true,
-    }).select("_id name employeeId department email phone role");
+    }).select("_id name employeeId department division email phone role");
 
     if (!employee) {
       return res.status(404).json({
@@ -544,10 +544,10 @@ const getVisitorPass = async (req, res) => {
 
   const visitor = await Visitor.findOne({ _id: id, ...(req.user.role !== "SYSTEM_ADMIN" && req.user.division ? { visitingDivision: req.user.division } : {}) })
     .select("+qrTokenEncrypted")
-    .populate(
-      "visitingEmployee",
-      "employeeId name department phone email role"
-    );
+   .populate(
+  "visitingEmployee",
+  "employeeId name department division phone email role profilePhoto signature"
+)
 
   if (!visitor) {
     return res.status(404).json({
@@ -598,22 +598,54 @@ const getVisitorPass = async (req, res) => {
   return res.status(200).json({
     success: true,
     message: "Visitor pass retrieved successfully",
-    visitor: {
-      id: visitor._id,
-      visitorId: visitor.visitorId,
-      name: visitor.name,
-      mobile: visitor.mobile,
-      organization: visitor.organization,
-      profilePhoto: visitor.profilePhoto,
-      visitingPurpose: visitor.visitingPurpose,
-      visitingEmployee: visitor.visitingEmployee,
-      status: visitor.status,
-      inTime: visitor.inTime,
-      validationHours: visitor.validationHours,
-      passIssuedAt: visitor.passIssuedAt,
-      passExpiresAt: visitor.passExpiresAt,
-      qrCode,
-    },
+  
+visitor: {
+  // Visitor identity
+  id: visitor._id,
+  visitorId: visitor.visitorId,
+  name: visitor.name,
+  mobile: visitor.mobile,
+  email: visitor.email,
+  organization: visitor.organization,
+  profilePhoto: visitor.profilePhoto,
+
+  // Address
+  address: visitor.address,
+  country: visitor.country,
+  state: visitor.state,
+  pinCode: visitor.pinCode,
+
+  // ID proof
+  idProofType: visitor.idProofType,
+  idProofMasked: visitor.idProofNo
+    ? `****${visitor.idProofNo.replace(/\D/g, "").slice(-4)}`
+    : null,
+
+  // Visit information
+  visitingPurpose: visitor.visitingPurpose,
+  remarks: visitor.remarks,
+  registeringDivision: visitor.registeringDivision,
+  visitingDivision: visitor.visitingDivision,
+
+  // Visiting employee
+  visitingEmployee: visitor.visitingEmployee,
+
+  // Authorization
+  approvedAt: visitor.approvedAt,
+  approvedBy: visitor.approvedBy,
+
+  // Pass information
+  status: visitor.status,
+  inTime: visitor.inTime,
+  outTime: visitor.outTime,
+  validationHours: visitor.validationHours,
+  passIssuedAt: visitor.passIssuedAt,
+  passExpiresAt: visitor.passExpiresAt,
+
+  // Keep existing secure QR data
+  qrCode,
+},
+
   });
 };
 

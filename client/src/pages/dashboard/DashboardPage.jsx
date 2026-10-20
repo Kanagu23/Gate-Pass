@@ -124,11 +124,13 @@ const DashboardPage = ({ role }) => {
   const [filterError, setFilterError] = useState("");
 
   const isAdmin = ["SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"].includes(role);
+  const isGateEmployee = role === "GATE_EMPLOYEE";
+const canViewOverview = isAdmin || isGateEmployee;
   const actions = quickActionsFor(user);
   const firstName = (user?.name || user?.employeeName || "").split(" ")[0];
 
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(isAdmin);
+  const [loading, setLoading] = useState(canViewOverview);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
@@ -147,7 +149,7 @@ const DashboardPage = ({ role }) => {
     : DIVISIONS.filter((division) => division.code === user?.division);
 
   const loadStats = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!canViewOverview) return;
 
     // Wait until both custom dates have been selected.
     if (
@@ -164,12 +166,21 @@ const DashboardPage = ({ role }) => {
       setRefreshing(true);
       setError("");
 
-      const [statsResponse, analyticsResponse, recentResponse] =
-        await Promise.all([
-          getDashboardStats(params),
-          getDashboardAnalytics(params),
-          getRecentVisitors(params),
-        ]);
+      
+const [
+  statsResponse,
+  analyticsResponse,
+  recentResponse,
+] = await Promise.all([
+  getDashboardStats(params),
+
+  isAdmin
+    ? getDashboardAnalytics(params)
+    : Promise.resolve({ analytics: null }),
+
+  getRecentVisitors(params),
+]);
+
 
       // Ignore responses from an older filter selection.
       if (requestId !== requestIdRef.current) return;
@@ -189,7 +200,7 @@ const DashboardPage = ({ role }) => {
         setRefreshing(false);
       }
     }
-  }, [isAdmin, filters]);
+  }, [canViewOverview, isAdmin, filters]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -268,7 +279,7 @@ const DashboardPage = ({ role }) => {
         }
       />
 
-      {isAdmin && (
+      {canViewOverview && (
         <>
           {filterError && <Alert tone="error">{filterError}</Alert>}
 
@@ -282,7 +293,7 @@ const DashboardPage = ({ role }) => {
         </>
       )}
 
-      {isAdmin && (
+      {canViewOverview && (
         <section aria-label="Visitor statistics" className="space-y-3">
           {error && <Alert tone="error">{error}</Alert>}
 
@@ -364,9 +375,16 @@ const DashboardPage = ({ role }) => {
         </section>
       )}
 
-      {isAdmin && (
+      {canViewOverview && (
         <section aria-label="Recent visitors">
-          <RecentVisitorsTable visitors={recentVisitors} />
+         <RecentVisitorsTable
+  visitors={recentVisitors}
+  viewAllPath={
+    isGateEmployee
+      ? "/gate/visitors"
+      : "/admin/visitors"
+  }
+/>
         </section>
       )}
     </div>
