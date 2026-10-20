@@ -25,6 +25,7 @@ import VisitorRegistrationPage from "./pages/visitor/VisitorRegistrationPage";
 import VisitorApprovalPage from "./pages/visitor/VisitorApprovalPage";
 import VisitorListPage from "./pages/visitor/VisitorListPage";
 import VisitorCheckoutPage from "./pages/visitor/VisitorCheckoutPage";
+import VisitorHistoryPage from "./pages/visitor/VisitorHistoryPage";
 
 import CreateUserPage from "./pages/admin/CreateUserPage";
 import DepartmentManagementPage from "./pages/admin/DepartmentManagementPage";
@@ -39,6 +40,19 @@ const canRegisterVisitor = (user) => {
     user.permissions?.includes("visitor.register")
   );
 };
+
+const canViewVisitors = (user) => {
+  if (!user) return false;
+
+  return (
+    ["ADMIN", "GATE_EMPLOYEE"].includes(user.role) ||
+    (
+      ["EMPLOYEE", "DIRECTOR"].includes(user.role) &&
+      user.permissions?.includes("visitor.view")
+    )
+  );
+};
+
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
@@ -183,6 +197,10 @@ const AppRoutes = () => {
             element={<VisitorApprovalPage />}
           />
         </Route>
+        <Route
+  path="/employee/history"
+  element={<VisitorHistoryPage />}
+/>
       </Route>
 
       {/* DIRECTOR */}
@@ -204,6 +222,10 @@ const AppRoutes = () => {
             element={<VisitorApprovalPage />}
           />
         </Route>
+        <Route
+  path="/employee/history"
+  element={<VisitorHistoryPage />}
+/>
       </Route>
 
       {/* PERMISSION-BASED VISITOR REGISTRATION */}
@@ -223,6 +245,24 @@ const AppRoutes = () => {
           element={<VisitorRegistrationPage />}
         />
       </Route>
+
+{/* PERMISSION-BASED VISITOR LIST */}
+<Route
+  element={
+    !user ? (
+      <Navigate to="/login" replace />
+    ) : canViewVisitors(user) ? (
+      <AppLayout />
+    ) : (
+      <Navigate to="/unauthorized" replace />
+    )
+  }
+>
+  <Route
+    path="/visitor/list"
+    element={<VisitorListPage />}
+  />
+</Route>
 
       {/* 404 */}
       <Route

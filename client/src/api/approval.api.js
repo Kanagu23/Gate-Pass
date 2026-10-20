@@ -17,10 +17,16 @@ export const approveVisitor = async (visitorId) => {
 };
 
 // Reject a pending visitor.
-export const rejectVisitor = async (visitorId) => {
+
+export const rejectVisitor = async (
+  visitorId,
+  rejectionReason
+) => {
   const response = await api.patch(
-    `/visitors/${visitorId}/reject`
+    `/visitors/${visitorId}/reject`,
+    { rejectionReason }
   );
 
   return response.data;
 };
+

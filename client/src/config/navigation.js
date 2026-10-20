@@ -1,6 +1,7 @@
 import {
   Building2,
   ClipboardCheck,
+  History,
   LayoutDashboard,
   ScanLine,
   UserCog,
@@ -81,8 +82,14 @@ const requests = (base) => ({
       icon: ClipboardCheck,
       hint: "Review visitors waiting for you",
     },
+    {
+      label: "Visitor history",
+      path: `${base}/history`,
+      icon: History,
+    },
   ],
 });
+
 
 export const navigationByRole = {
   ADMIN: [overview("/admin"), frontDesk("/admin"), administration],
@@ -106,35 +113,65 @@ export const quickActionsFor = (user) => {
 
 
 // Add optional navigation for employees/directors with explicit permission.
+
 export const getNavigationForUser = (user) => {
   if (!user) return [];
 
   const groups = navigationByRole[user.role] || [];
-  const canRegister =
-    ["EMPLOYEE", "DIRECTOR"].includes(user.role) &&
-    Array.isArray(user.permissions) &&
-    user.permissions.includes("visitor.register");
 
-  if (!canRegister) return groups;
+  const isEmployeeOrDirector = [
+    "EMPLOYEE",
+    "DIRECTOR",
+  ].includes(user.role);
+
+  const permissions = Array.isArray(user.permissions)
+    ? user.permissions
+    : [];
+
+  const canRegister =
+    isEmployeeOrDirector &&
+    permissions.includes("visitor.register");
+
+  const canView =
+    isEmployeeOrDirector &&
+    permissions.includes("visitor.view");
+
+  const visitorItems = [];
+
+  if (canView) {
+    visitorItems.push({
+      label: "Visitors",
+      path: "/visitor/list",
+      icon: Users,
+    });
+  }
+
+  if (canRegister) {
+    visitorItems.push({
+      label: "Register visitor",
+      path: "/visitor/register",
+      icon: UserPlus,
+      hint: "Create a new visitor request",
+    });
+  }
+
+  if (visitorItems.length === 0) {
+    return groups;
+  }
 
   return [
     ...groups,
     {
       label: "Visitor management",
-      items: [
-        {
-          label: "Register visitor",
-          path: "/visitor/register",
-          icon: UserPlus,
-          hint: "Create a new visitor request",
-        },
-      ],
+      items: visitorItems,
     },
   ];
 };
 
+
 // Resolve page titles without changing existing navigation behavior.
 export const titleForPath = (pathname) => {
+  if (pathname === "/visitor/list") return "Visitors";
   if (pathname === "/visitor/register") return "Register visitor";
   if (/\/visitors\/[^/]+\/pass$/.test(pathname)) return "Visitor Pass";
 

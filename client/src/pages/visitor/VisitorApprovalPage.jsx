@@ -14,6 +14,8 @@ import EmptyState from "../../components/common/EmptyState";
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import { TableSkeleton } from "../../components/common/Skeleton";
+import Modal from "../../components/common/Modal";
+import Textarea from "../../components/common/Textarea";
 
 const formatDate = (value) =>
   value
@@ -30,6 +32,7 @@ const VisitorApprovalPage = () => {
   const [pending, setPending] = useState(null); // { visitor, action }
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const loadVisitors = useCallback(async () => {
     try {
@@ -50,36 +53,59 @@ const VisitorApprovalPage = () => {
     loadVisitors();
   }, [loadVisitors]);
 
-  const confirmDecision = async () => {
-    if (!pending) return;
 
-    const { visitor, action } = pending;
-    const isApprove = action === "approve";
+const confirmDecision = async () => {
+  if (!pending) return;
 
-    try {
-      setProcessingId(visitor._id);
-      setError("");
-      setMessage("");
+  const { visitor, action } = pending;
+  const isApprove = action === "approve";
 
-      const response = isApprove
-        ? await approveVisitor(visitor._id)
-        : await rejectVisitor(visitor._id);
+  const reason = rejectionReason.trim();
 
-      setMessage(
-        response.message ||
-          `Visitor ${isApprove ? "approved" : "rejected"} successfully.`
-      );
-      setPending(null);
-      await loadVisitors();
-    } catch (err) {
-      setPending(null);
-      setError(
-        err.response?.data?.message || "Unable to process visitor request."
-      );
-    } finally {
-      setProcessingId(null);
-    }
-  };
+  if (!isApprove && !reason) {
+    setError("Rejection reason is required");
+    return;
+  }
+
+  if (!isApprove && reason.length > 500) {
+    setError("Rejection reason cannot exceed 500 characters");
+    return;
+  }
+
+  try {
+    setProcessingId(visitor._id);
+    setError("");
+    setMessage("");
+
+    const response = isApprove
+      ? await approveVisitor(visitor._id)
+      : await rejectVisitor(visitor._id, reason);
+
+    setMessage(
+      response.message ||
+        `Visitor ${isApprove ? "approved" : "rejected"} successfully.`
+    );
+
+    setPending(null);
+    setRejectionReason("");
+
+    await loadVisitors();
+  } catch (err) {
+    setError(
+      err.response?.data?.message ||
+        "Unable to process visitor request."
+    );
+  } finally {
+    setProcessingId(null);
+  }
+};
+const closeDecision = () => {
+  if (processingId) return;
+
+  setPending(null);
+  setRejectionReason("");
+  setError("");
+};
 
   const isApprove = pending?.action === "approve";
 
@@ -216,22 +242,80 @@ const VisitorApprovalPage = () => {
         )}
       </div>
 
-      <ConfirmDialog
-        open={Boolean(pending)}
-        title={isApprove ? "Approve visitor?" : "Reject visitor?"}
-        message={
-          pending
-            ? `${pending.visitor.name} (${pending.visitor.visitorId}) will be ${
-                isApprove ? "approved" : "rejected"
-              }.`
-            : ""
+     
+{/* Approval confirmation */}
+<ConfirmDialog
+  open={Boolean(pending) && isApprove}
+  title="Approve visitor?"
+  message={
+    pending
+      ? `${pending.visitor.name} (${pending.visitor.visitorId}) will be approved.`
+      : ""
+  }
+  confirmLabel="Approve"
+  confirmVariant="success"
+  loading={Boolean(processingId)}
+  onConfirm={confirmDecision}
+  onCancel={closeDecision}
+/>
+
+{/* Rejection modal */}
+<Modal
+  open={Boolean(pending) && !isApprove}
+  title="Reject visitor?"
+  description={
+    pending
+      ? `${pending.visitor.name} (${pending.visitor.visitorId}) will be rejected.`
+      : ""
+  }
+  size="sm"
+  closeDisabled={Boolean(processingId)}
+  onClose={closeDecision}
+>
+  <div className="space-y-4">
+    <div>
+      <Textarea
+        id="rejectionReason"
+        label="Rejection reason *"
+        value={rejectionReason}
+        onChange={(event) =>
+          setRejectionReason(event.target.value)
         }
-        confirmLabel={isApprove ? "Approve" : "Reject"}
-        confirmVariant={isApprove ? "success" : "danger"}
-        loading={Boolean(processingId)}
-        onConfirm={confirmDecision}
-        onCancel={() => setPending(null)}
+        placeholder="Enter the reason for rejecting this visitor..."
+        rows={4}
+        maxLength={500}
+        required
+        disabled={Boolean(processingId)}
       />
+
+      <p className="mt-1 text-right text-[11px] text-slate-400">
+        {rejectionReason.length}/500 characters
+      </p>
+    </div>
+
+    <div className="flex justify-end gap-2 border-t border-line pt-4">
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={closeDecision}
+        disabled={Boolean(processingId)}
+      >
+        Cancel
+      </Button>
+
+      <Button
+        size="sm"
+        variant="danger"
+        loading={Boolean(processingId)}
+        disabled={!rejectionReason.trim()}
+        onClick={confirmDecision}
+      >
+        Reject visitor
+      </Button>
+    </div>
+  </div>
+</Modal>
+
     </div>
   );
 };

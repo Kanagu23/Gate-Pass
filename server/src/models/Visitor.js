@@ -89,6 +89,14 @@ const visitorSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    
+rejectionReason: {
+  type: String,
+  trim: true,
+  maxlength: 500,
+  default: null,
+},
+
     visitCount: {
       type: Number,
       default: 0,

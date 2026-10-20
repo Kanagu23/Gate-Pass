@@ -270,7 +270,9 @@ const approveVisitor = async (req, res) => {
 
 const rejectVisitor = async (req, res) => {
   const { id } = req.params;
+  const { rejectionReason } = req.body || {};
 
+  // Validate visitor ID
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({
       success: false,
@@ -278,8 +280,29 @@ const rejectVisitor = async (req, res) => {
     });
   }
 
-  // Only the assigned employee/director can reject
-  // a visitor whose status is still PENDING.
+  // Rejection reason is mandatory
+  if (
+    typeof rejectionReason !== "string" ||
+    !rejectionReason.trim()
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Rejection reason is required",
+    });
+  }
+
+  const reason = rejectionReason.trim();
+
+  // Match the Visitor schema's maximum length
+  if (reason.length > 500) {
+    return res.status(400).json({
+      success: false,
+      message: "Rejection reason cannot exceed 500 characters",
+    });
+  }
+
+  // Only the assigned Employee or Director can reject
+  // a visitor whose request is still pending.
   const visitor = await Visitor.findOneAndUpdate(
     {
       _id: id,
@@ -290,12 +313,13 @@ const rejectVisitor = async (req, res) => {
       $set: {
         status: "REJECTED",
         rejectedAt: new Date(),
+        rejectionReason: reason,
       },
     },
     {
       new: true,
       runValidators: true,
-    },
+    }
   );
 
   if (!visitor) {
@@ -315,6 +339,7 @@ const rejectVisitor = async (req, res) => {
       name: visitor.name,
       status: visitor.status,
       rejectedAt: visitor.rejectedAt,
+      rejectionReason: visitor.rejectionReason,
     },
   });
 };
@@ -647,14 +672,29 @@ const getVisitors = async (req, res) => {
     });
   }
 
-  const filter = status ? { status } : {};
+ 
+const filter = status ? { status } : {};
+
+const isFrontDesk = ["ADMIN", "GATE_EMPLOYEE"].includes(
+  req.user.role
+);
+
+// Employees and Directors can only view visitors
+// assigned to them, even with visitor.view permission.
+if (!isFrontDesk) {
+  filter.visitingEmployee = req.user._id;
+}
+
 
   const visitors = await Visitor.find(filter)
     .select(
-      "visitorId name mobile organization visitingPurpose " +
-      "visitingEmployee status inTime outTime " +
-      "passExpiresAt createdAt"
-    )
+  "visitorId name mobile organization visitingPurpose " +
+  "visitingEmployee status inTime outTime " +
+  "passExpiresAt createdAt " +
+  (req.user.role === "ADMIN"
+    ? "rejectionReason rejectedAt "
+    : "")
+)
     .populate(
       "visitingEmployee",
       "employeeId name department"
@@ -671,6 +711,60 @@ const getVisitors = async (req, res) => {
 };
 
 
+const getVisitorHistory = async (req, res) => {
+  const allowedStatuses = [
+    "PENDING",
+    "APPROVED",
+    "REJECTED",
+    "CHECKED_IN",
+    "CHECKED_OUT",
+  ];
+
+  const { status } = req.query;
+
+  if (status && !allowedStatuses.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid visitor status",
+    });
+  }
+
+  // Always restrict history to the signed-in employee.
+  const filter = {
+    visitingEmployee: req.user._id,
+  };
+
+  if (status) {
+    filter.status = status;
+  }
+
+  const visitors = await Visitor.find(filter)
+   
+.select(
+  "visitorId name mobile organization " +
+  "visitingPurpose remarks status " +
+  "createdBy approvedAt rejectedAt rejectionReason " +
+  "inTime outTime createdAt"
+)
+
+    .populate(
+      "createdBy",
+      "name employeeId department role"
+    )
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .lean();
+
+  return res.status(200).json({
+    success: true,
+    count: visitors.length,
+    visitors,
+  });
+};
+
+
+
+
 module.exports = {
   registerVisitor,
   getPendingVisitors,
@@ -681,5 +775,7 @@ module.exports = {
   checkOutByQR,
   verifyVisitorPass,
   getVisitorPass,
-  getVisitors
+  getVisitors,
+  getVisitorHistory,
+  
 };

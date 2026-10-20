@@ -45,3 +45,12 @@ export const checkOutVisitorByQR = async (qrToken) => {
 
   return response.data;
 };
+
+
+export const getVisitorHistory = async (status = "") => {
+  const response = await api.get("/visitors/history", {
+    params: status ? { status } : {},
+  });
+
+  return response.data;
+};

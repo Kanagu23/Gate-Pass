@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { Link, useLocation } from "react-router-dom";
 import { Printer, RefreshCw, Search, UserPlus, Users, X } from "lucide-react";
 
@@ -30,8 +31,24 @@ const formatDate = (value) =>
     : "—";
 
 const VisitorListPage = () => {
-  const { pathname } = useLocation();
-  const basePath = pathname.startsWith("/admin") ? "/admin" : "/gate";
+
+const { pathname } = useLocation();
+const { user } = useAuth();
+
+const isAdmin = user?.role === "ADMIN";
+const isGateEmployee = user?.role === "GATE_EMPLOYEE";
+const isFrontDesk = isAdmin || isGateEmployee;
+
+const basePath = isAdmin ? "/admin" : "/gate";
+
+const canRegister =
+  isFrontDesk ||
+  user?.permissions?.includes("visitor.register");
+
+const registrationPath = isFrontDesk
+  ? `${basePath}/visitors/register`
+  : "/visitor/register";
+
 
   const [visitors, setVisitors] = useState([]);
   const [status, setStatus] = useState("");
@@ -77,15 +94,19 @@ const VisitorListPage = () => {
       <PageHeader
         title="Visitors"
         description="Track visitor requests, check-in status and passes."
-        actions={
-          <Link
-            to={`${basePath}/visitors/register`}
-            className={buttonStyles("primary", "md")}
-          >
-            <UserPlus size={14} />
-            Register visitor
-          </Link>
-        }
+       
+actions={
+  canRegister ? (
+    <Link
+      to={registrationPath}
+      className={buttonStyles("primary", "md")}
+    >
+      <UserPlus size={14} />
+      Register visitor
+    </Link>
+  ) : null
+}
+
       />
 
       <div className="rise rounded-card border border-line bg-white shadow-card" style={{ "--i": 1 }}>
@@ -223,16 +244,37 @@ const VisitorListPage = () => {
 
                     <td className="text-slate-600">{visitor.visitingPurpose}</td>
 
-                    <td>
-                      <StatusBadge status={visitor.status} />
-                    </td>
+                   
+<td>
+  <div className="space-y-1.5">
+    <StatusBadge status={visitor.status} />
+
+    {isAdmin && visitor.status === "REJECTED" && (
+      <div className="max-w-[260px]">
+        <p className="break-words text-[11px] leading-4 text-slate-600">
+          <span className="font-medium text-red-600">
+            Reason:
+          </span>{" "}
+          {visitor.rejectionReason || "Reason not recorded"}
+        </p>
+
+        {visitor.rejectedAt && (
+          <p className="mt-1 text-[10px] text-slate-400">
+            Rejected: {formatDate(visitor.rejectedAt)}
+          </p>
+        )}
+      </div>
+    )}
+  </div>
+</td>
+
 
                     <td className="whitespace-nowrap text-xs text-slate-500">
                       {formatDate(visitor.createdAt)}
                     </td>
 
                     <td className="text-right">
-                      {visitor.status === "CHECKED_IN" ? (
+                      {isFrontDesk && visitor.status === "CHECKED_IN" ? (
                         <Link
                           to={`${basePath}/visitors/${visitor._id}/pass`}
                           className={buttonStyles("soft", "sm")}

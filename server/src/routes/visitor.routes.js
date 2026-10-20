@@ -13,7 +13,8 @@ const {
   verifyVisitorPass,
   checkOutByQR,
   getVisitorPass,
-  getVisitors
+  getVisitors,
+  getVisitorHistory
 } = require("../controllers/visitor.controller");
 const {
   allowRoleOrPermission,
@@ -91,11 +92,22 @@ router.get(
   getVisitorPass
 );
 
+
 router.get(
   "/",
   authenticate,
-  allowRoles("ADMIN", "GATE_EMPLOYEE"),
+  allowRoleOrPermission(
+    ["ADMIN", "GATE_EMPLOYEE"],
+    PERMISSIONS.VISITOR_VIEW
+  ),
   getVisitors
+);
+
+router.get(
+  "/history",
+  authenticate,
+  allowRoles("EMPLOYEE", "DIRECTOR"),
+  getVisitorHistory
 );
 
 module.exports = router;
