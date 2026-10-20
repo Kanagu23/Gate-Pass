@@ -72,7 +72,7 @@ const CreateUserPage = () => {
         setDepartments(
           response.departments.filter((department) => department.isActive),
         );
-      } catch (error) {
+      } catch{
         setError("Unable to load departments.");
       } finally {
         setLoadingDepartments(false);

@@ -22,14 +22,10 @@ import {
   getDashboardAnalytics,
   getRecentVisitors,
 } from "../../api/dashboard.api";
-import {
-  quickActionsFor,
-  roleLabels,
-} from "../../config/navigation";
+import { quickActionsFor, roleLabels } from "../../config/navigation";
 import VisitorActivityChart from "../../components/dashboard/VisitorActivityChart";
 import VisitorStatusChart from "../../components/dashboard/VisitorStatusChart";
 import RecentVisitorsTable from "../../components/dashboard/RecentVisitorsTable";
-
 
 const STAT_ITEMS = [
   {
@@ -108,9 +104,8 @@ const greeting = () => {
 const DashboardPage = ({ role }) => {
   const { user } = useAuth();
 
-  const roleLabel = roleLabels[role] || "User";
   const isAdmin = role === "ADMIN";
-const actions = quickActionsFor(user);
+  const actions = quickActionsFor(user);
   const firstName = (user?.name || user?.employeeName || "").split(" ")[0];
 
   const [stats, setStats] = useState(null);
@@ -119,35 +114,33 @@ const actions = quickActionsFor(user);
   const [error, setError] = useState("");
 
   const [analytics, setAnalytics] = useState(null);
-const [recentVisitors, setRecentVisitors] = useState([]);
+  const [recentVisitors, setRecentVisitors] = useState([]);
 
-const loadStats = useCallback(async () => {
-  if (!isAdmin) return;
+  const loadStats = useCallback(async () => {
+    if (!isAdmin) return;
 
-  try {
-   setRefreshing(true);
-setError("");
-    const [statsResponse, analyticsResponse, recentResponse] =
-      await Promise.all([
-        getDashboardStats(),
-        getDashboardAnalytics(),
-        getRecentVisitors(),
-      ]);
+    try {
+      setRefreshing(true);
+      setError("");
+      const [statsResponse, analyticsResponse, recentResponse] =
+        await Promise.all([
+          getDashboardStats(),
+          getDashboardAnalytics(),
+          getRecentVisitors(),
+        ]);
 
-    setStats(statsResponse.stats);
-    setAnalytics(analyticsResponse.analytics);
-    setRecentVisitors(recentResponse.visitors || []);
-  } catch (err) {
-    setError(
-      err.response?.data?.message ||
-        "Unable to load dashboard information."
-    );
-  } finally {
-  setLoading(false);
-  setRefreshing(false);
-}
-}, [isAdmin]);
-
+      setStats(statsResponse.stats);
+      setAnalytics(analyticsResponse.analytics);
+      setRecentVisitors(recentResponse.visitors || []);
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Unable to load dashboard information.",
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     loadStats();
@@ -164,18 +157,18 @@ setError("");
         }
         actions={
           isAdmin && (
-           <Button
-  variant="secondary"
-  size="sm"
-  onClick={loadStats}
-  disabled={loading || refreshing}
->
-  <RefreshCw
-    size={13}
-    className={refreshing ? "animate-spin" : ""}
-  />
-  {refreshing ? "Refreshing..." : "Refresh"}
-</Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={loadStats}
+              disabled={loading || refreshing}
+            >
+              <RefreshCw
+                size={13}
+                className={refreshing ? "animate-spin" : ""}
+              />
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </Button>
           )
         }
       />
@@ -242,28 +235,23 @@ setError("");
           </div>
         </Card>
       )}
-      
-{isAdmin && analytics && (
-<section
-  aria-label="Visitor analytics"
-  className="grid grid-cols-1 gap-3 lg:grid-cols-2"
->
-  <VisitorActivityChart
-    data={analytics.dailyActivity || []}
-  />
 
-  <VisitorStatusChart
-    data={analytics.statusDistribution || []}
-  />
-</section>
-)}
+      {isAdmin && analytics && (
+        <section
+          aria-label="Visitor analytics"
+          className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+        >
+          <VisitorActivityChart data={analytics.dailyActivity || []} />
 
-{isAdmin && (
-  <section aria-label="Recent visitors">
-    <RecentVisitorsTable visitors={recentVisitors} />
-  </section>
-)}
+          <VisitorStatusChart data={analytics.statusDistribution || []} />
+        </section>
+      )}
 
+      {isAdmin && (
+        <section aria-label="Recent visitors">
+          <RecentVisitorsTable visitors={recentVisitors} />
+        </section>
+      )}
     </div>
   );
 };

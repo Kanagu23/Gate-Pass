@@ -6,7 +6,6 @@ import { getDepartments } from "../../api/department.api";
 import EmployeeSearch from "../../components/common/EmployeeSearch";
 import { useAuth } from "../../context/AuthContext";
 import Alert from "../../components/common/Alert";
-import Avatar from "../../components/common/Avatar";
 import Button from "../../components/common/Button";
 import Card from "../../components/common/Card";
 import Input from "../../components/common/Input";
@@ -28,14 +27,14 @@ const initialForm = {
   validationHours: 24,
 };
 
-const Detail = ({ label, value }) => (
-  <div className="min-w-0">
-    <p className="text-[11px] text-slate-500">{label}</p>
-    <p className="truncate text-[13px] font-medium text-slate-800">
-      {value || "—"}
-    </p>
-  </div>
-);
+// const Detail = ({ label, value }) => (
+//   <div className="min-w-0">
+//     <p className="text-[11px] text-slate-500">{label}</p>
+//     <p className="truncate text-[13px] font-medium text-slate-800">
+//       {value || "—"}
+//     </p>
+//   </div>
+// );
 
 const VisitorRegistrationPage = () => {
   const [form, setForm] = useState(initialForm);
@@ -110,7 +109,7 @@ useEffect(() => {
           )
         );
       }
-    } catch (error) {
+    } catch  {
       if (active) {
         setDepartmentError("Unable to load departments.");
       }
