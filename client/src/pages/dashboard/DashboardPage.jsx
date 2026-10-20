@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight,
@@ -26,6 +26,15 @@ import { quickActionsFor, roleLabels } from "../../config/navigation";
 import VisitorActivityChart from "../../components/dashboard/VisitorActivityChart";
 import VisitorStatusChart from "../../components/dashboard/VisitorStatusChart";
 import RecentVisitorsTable from "../../components/dashboard/RecentVisitorsTable";
+
+import { DEFAULT_DASHBOARD_FILTERS } from "../../config/dashboardFilters";
+import { buildDashboardParams } from "../../config/dashboardFilters";
+import { DIVISIONS } from "../../config/divisions";
+import { getDepartments } from "../../api/department.api";
+import DashboardFilters from "../../components/dashboard/DashboardFilters";
+import VisitorPurposeChart from "../../components/dashboard/VisitorPurposeChart";
+import DivisionVisitorsChart from "../../components/dashboard/DivisionVisitorsChart";
+import DepartmentVisitorsChart from "../../components/dashboard/DepartmentVisitorsChart";
 
 const STAT_ITEMS = [
   {
@@ -104,6 +113,16 @@ const greeting = () => {
 const DashboardPage = ({ role }) => {
   const { user } = useAuth();
 
+  const canSelectDivision = user?.role === "SYSTEM_ADMIN";
+
+  const [filters, setFilters] = useState(() => ({
+    ...DEFAULT_DASHBOARD_FILTERS,
+    division: canSelectDivision ? "" : user?.division || "",
+  }));
+
+  const [departments, setDepartments] = useState([]);
+  const [filterError, setFilterError] = useState("");
+
   const isAdmin = ["SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"].includes(role);
   const actions = quickActionsFor(user);
   const firstName = (user?.name || user?.employeeName || "").split(" ")[0];
@@ -116,35 +135,111 @@ const DashboardPage = ({ role }) => {
   const [analytics, setAnalytics] = useState(null);
   const [recentVisitors, setRecentVisitors] = useState([]);
 
+  const requestIdRef = useRef(0);
+
+  const availableDepartments = departments.filter(
+    (department) =>
+      !filters.division || department.division === filters.division,
+  );
+
+  const availableDivisions = canSelectDivision
+    ? DIVISIONS
+    : DIVISIONS.filter((division) => division.code === user?.division);
+
   const loadStats = useCallback(async () => {
     if (!isAdmin) return;
+
+    // Wait until both custom dates have been selected.
+    if (
+      filters.dateRange === "custom" &&
+      (!filters.startDate || !filters.endDate)
+    ) {
+      return;
+    }
+
+    const requestId = ++requestIdRef.current;
+    const params = buildDashboardParams(filters);
 
     try {
       setRefreshing(true);
       setError("");
+
       const [statsResponse, analyticsResponse, recentResponse] =
         await Promise.all([
-          getDashboardStats(),
-          getDashboardAnalytics(),
-          getRecentVisitors(),
+          getDashboardStats(params),
+          getDashboardAnalytics(params),
+          getRecentVisitors(params),
         ]);
+
+      // Ignore responses from an older filter selection.
+      if (requestId !== requestIdRef.current) return;
 
       setStats(statsResponse.stats);
       setAnalytics(analyticsResponse.analytics);
       setRecentVisitors(recentResponse.visitors || []);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+
       setError(
         err.response?.data?.message || "Unable to load dashboard information.",
       );
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
+  }, [isAdmin, filters]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    let active = true;
+
+    const loadDepartments = async () => {
+      try {
+        const response = await getDepartments();
+
+        if (active) {
+          setDepartments(
+            (response.departments || []).filter(
+              (department) => department.isActive,
+            ),
+          );
+        }
+      } catch (error) {
+        if (active) {
+          setFilterError(
+            error.response?.data?.message || "Unable to load departments.",
+          );
+        }
+      }
+    };
+
+    loadDepartments();
+
+    return () => {
+      active = false;
+    };
   }, [isAdmin]);
 
   useEffect(() => {
+    if (
+      filters.dateRange === "custom" &&
+      (!filters.startDate || !filters.endDate)
+    ) {
+      requestIdRef.current += 1;
+      setRefreshing(false);
+      setLoading(false);
+      return;
+    }
+
     loadStats();
-  }, [loadStats]);
+
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, [loadStats, filters]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
@@ -172,6 +267,20 @@ const DashboardPage = ({ role }) => {
           )
         }
       />
+
+      {isAdmin && (
+        <>
+          {filterError && <Alert tone="error">{filterError}</Alert>}
+
+          <DashboardFilters
+            filters={filters}
+            onChange={setFilters}
+            divisions={DIVISIONS}
+            departments={availableDepartments}
+            canSelectDivision={canSelectDivision}
+          />
+        </>
+      )}
 
       {isAdmin && (
         <section aria-label="Visitor statistics" className="space-y-3">
@@ -202,7 +311,7 @@ const DashboardPage = ({ role }) => {
         </section>
       )}
 
-      {actions.length > 0 && (
+      {/* {actions.length > 0 && (
         <Card title="Quick actions" padded={false}>
           <div
             className={`grid divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0 ${
@@ -234,7 +343,7 @@ const DashboardPage = ({ role }) => {
             ))}
           </div>
         </Card>
-      )}
+      )} */}
 
       {isAdmin && analytics && (
         <section
@@ -242,8 +351,16 @@ const DashboardPage = ({ role }) => {
           className="grid grid-cols-1 gap-3 lg:grid-cols-2"
         >
           <VisitorActivityChart data={analytics.dailyActivity || []} />
-
           <VisitorStatusChart data={analytics.statusDistribution || []} />
+          <VisitorPurposeChart data={analytics.purposeDistribution || []} />
+          <DepartmentVisitorsChart
+            data={analytics.departmentDistribution || []}
+          />
+          {user?.role === "SYSTEM_ADMIN" && (
+            <DivisionVisitorsChart
+              data={analytics.divisionDistribution || []}
+            />
+          )}
         </section>
       )}
 

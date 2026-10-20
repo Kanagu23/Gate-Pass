@@ -11,6 +11,7 @@ import { useAuth } from "../context/AuthContext";
 import { roleLabels } from "../config/navigation";
 import Avatar from "./common/Avatar";
 import { DIVISIONS } from "../config/divisions";
+import { divisionName } from "../config/divisions";
 import Spinner from "./common/Spinner";
 
 const today = () =>
@@ -25,9 +26,7 @@ const Header = ({ collapsed = false, onMenuClick, onToggleCollapse }) => {
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [division, setDivision] = useState(() => localStorage.getItem("gatepass:division") || "");
-  const globalAccess = user?.role === "SYSTEM_ADMIN" || (user?.role === "ADMIN" && !user?.division);
-  const selectDivision = (value) => { setDivision(value); localStorage.setItem("gatepass:division", value); window.dispatchEvent(new CustomEvent("gatepass:division-changed", { detail: value })); };
+
   const [loggingOut, setLoggingOut] = useState(false);
 
   const name = user?.name || user?.employeeName || "User";
@@ -83,14 +82,19 @@ const Header = ({ collapsed = false, onMenuClick, onToggleCollapse }) => {
       </div>
 
       <div className="flex items-center gap-3">
-        <label className="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
-          <span>Division</span>
-          <select aria-label="Active division" className="rounded-control border border-line bg-white px-2 py-1 text-xs text-ink" value={globalAccess ? division : user?.division || ""} disabled={!globalAccess} onChange={(event) => selectDivision(event.target.value)}>
-            {globalAccess && <option value="">All divisions</option>}
-            {!globalAccess && !user?.division && <option value="">Unassigned</option>}
-            {DIVISIONS.filter((d) => globalAccess || d.code === user?.division).map((d) => <option key={d.code} value={d.code}>{d.name}</option>)}
-          </select>
-        </label>
+       
+{user?.role !== "SYSTEM_ADMIN" && (
+  <div className="hidden items-center gap-2 sm:flex">
+    <span className="text-xs text-slate-500">
+      Division
+    </span>
+
+    <span className="inline-flex items-center rounded-control border border-line bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
+      {divisionName(user?.division)}
+    </span>
+  </div>
+)}
+
         <div className="relative">
         <button
           type="button"

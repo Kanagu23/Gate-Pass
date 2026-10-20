@@ -1,23 +1,27 @@
 
 import api from "./index";
 
-// Fetch Admin dashboard statistics.
-export const getDashboardStats = async () => {
-  const response = await api.get("/dashboard/stats");
+export const getDashboardStats = async (params = {}) => {
+  const response = await api.get("/dashboard/stats", {
+    params,
+  });
 
   return response.data;
 };
 
-// Fetch Admin dashboard analytics.
-export const getDashboardAnalytics = async () => {
-  const response = await api.get("/dashboard/analytics");
+export const getDashboardAnalytics = async (params = {}) => {
+  const response = await api.get("/dashboard/analytics", {
+    params,
+  });
 
   return response.data;
 };
 
-
-export const getRecentVisitors = async () => {
-  const response = await api.get("/dashboard/recent-visitors");
+export const getRecentVisitors = async (params = {}) => {
+  const response = await api.get(
+    "/dashboard/recent-visitors",
+    { params }
+  );
 
   return response.data;
 };
