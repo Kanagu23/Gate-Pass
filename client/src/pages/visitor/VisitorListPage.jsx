@@ -12,7 +12,6 @@ import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import { TableSkeleton } from "../../components/common/Skeleton";
 import { buttonStyles } from "../../components/common/buttonStyles";
-import Card from "../../components/common/Card";
 
 const STATUS_TABS = [
   { label: "All", value: "" },
@@ -32,7 +31,6 @@ const formatDate = (value) =>
 
 const VisitorListPage = () => {
 
-const { pathname } = useLocation();
 const { user } = useAuth();
 
 const isAdmin = user?.role === "ADMIN";

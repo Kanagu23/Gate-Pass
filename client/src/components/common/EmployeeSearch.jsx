@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { Search, UserRound, X } from "lucide-react";
+import {  UserRound, X } from "lucide-react";
 
 import { searchEmployees } from "../../api/employee.api";
 import Input from "./Input";
@@ -39,7 +39,7 @@ const EmployeeSearch = ({
         if (active) {
           setEmployees(response.employees || []);
         }
-      } catch (err) {
+      } catch {
         if (active) {
           setEmployees([]);
           setError("Unable to search employees.");

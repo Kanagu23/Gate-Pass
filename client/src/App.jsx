@@ -5,6 +5,8 @@ import {
   Route,
   Routes,
 } from "react-router-dom";
+import { lazy, Suspense } from "react";
+
 
 import { useAuth } from "./context/AuthContext";
 import { roleHome } from "./config/navigation";
@@ -20,7 +22,6 @@ import AppLayout from "./layouts/AppLayout";
 import Unauthorized from "./pages/errors/Unauthorized";
 import NotFound from "./pages/errors/NotFound";
 
-import VisitorPassPage from "./pages/visitor/VisitorPassPage";
 import VisitorRegistrationPage from "./pages/visitor/VisitorRegistrationPage";
 import VisitorApprovalPage from "./pages/visitor/VisitorApprovalPage";
 import VisitorListPage from "./pages/visitor/VisitorListPage";
@@ -30,6 +31,10 @@ import VisitorHistoryPage from "./pages/visitor/VisitorHistoryPage";
 import CreateUserPage from "./pages/admin/CreateUserPage";
 import DepartmentManagementPage from "./pages/admin/DepartmentManagementPage";
 import UserManagementPage from "./pages/admin/UserManagementPage";
+
+const VisitorPassPage = lazy(() =>
+  import("./pages/visitor/VisitorPassPage")
+);
 
 // Check whether a user can register visitors.
 const canRegisterVisitor = (user) => {
@@ -64,6 +69,7 @@ const AppRoutes = () => {
   }
 
   return (
+    <Suspense fallback={<PageLoader label="Loading page..." />}>
     <Routes>
       {/* Home */}
       <Route
@@ -270,6 +276,7 @@ const AppRoutes = () => {
         element={<NotFound />}
       />
     </Routes>
+    </Suspense>
   );
 };
 
