@@ -17,6 +17,7 @@ import HomeRedirect from "./routes/HomeRedirect";
 
 import Login from "./pages/auth/login";
 import DashboardPage from "./pages/dashboard/DashboardPage";
+import ReportPage from "./pages/dashboard/ReportPage";
 import AppLayout from "./layouts/AppLayout";
 
 import Unauthorized from "./pages/errors/Unauthorized";
@@ -100,13 +101,13 @@ const AppRoutes = () => {
       {/* ADMIN */}
       <Route
         element={
-          <ProtectedRoute allowedRoles={["ADMIN"]} />
+          <ProtectedRoute allowedRoles={["SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"]} />
         }
       >
         <Route element={<AppLayout />}>
           <Route
             path="/admin"
-            element={<DashboardPage role="ADMIN" />}
+            element={<DashboardPage role={user?.role || "ADMIN"} />}
           />
 
           <Route
@@ -129,6 +130,10 @@ const AppRoutes = () => {
             element={<VisitorPassPage />}
           />
 
+          <Route
+            path="/admin/reports"
+            element={<ReportPage />}
+          />
           <Route
             path="/admin/departments"
             element={<DepartmentManagementPage />}
@@ -229,7 +234,7 @@ const AppRoutes = () => {
           />
         </Route>
         <Route
-  path="/employee/history"
+  path="/director/history"
   element={<VisitorHistoryPage />}
 />
       </Route>

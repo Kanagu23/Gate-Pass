@@ -16,8 +16,9 @@ const initialsOf = (name = "") =>
     .join("")
     .toUpperCase() || "U";
 
-const Avatar = ({ name = "", size = 28, className = "" }) => {
+const Avatar = ({ name = "", size = 28, className = "", src = "" }) => {
   const tone = tones[(name.charCodeAt(0) || 0) % tones.length];
+  if (src) return <img src={src} alt={name || "Profile"} width={size} height={size} className={`inline-block shrink-0 rounded-full object-cover ${className}`} />;
   return (
     <span
       aria-hidden="true"

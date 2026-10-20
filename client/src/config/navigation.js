@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 
 export const roleHome = {
+  SYSTEM_ADMIN: "/admin",
+  DIVISION_HR: "/admin",
   ADMIN: "/admin",
   GATE_EMPLOYEE: "/gate",
   EMPLOYEE: "/employee",
@@ -17,6 +19,8 @@ export const roleHome = {
 };
 
 export const roleLabels = {
+  SYSTEM_ADMIN: "System Administrator",
+  DIVISION_HR: "Division HR",
   ADMIN: "Administrator",
   GATE_EMPLOYEE: "Gate Employee",
   EMPLOYEE: "Employee",
@@ -63,6 +67,7 @@ const frontDesk = (base) => ({
 const administration = {
   label: "Administration",
   items: [
+    { label: "Reports", path: "/admin/reports", icon: LayoutDashboard },
     {
       label: "Users",
       path: "/admin/users",
@@ -92,6 +97,8 @@ const requests = (base) => ({
 
 
 export const navigationByRole = {
+  SYSTEM_ADMIN: [overview("/admin"), frontDesk("/admin"), administration],
+  DIVISION_HR: [overview("/admin"), administration],
   ADMIN: [overview("/admin"), frontDesk("/admin"), administration],
   GATE_EMPLOYEE: [overview("/gate"), frontDesk("/gate")],
   EMPLOYEE: [overview("/employee"), requests("/employee")],

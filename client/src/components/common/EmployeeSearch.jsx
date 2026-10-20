@@ -42,7 +42,7 @@ const EmployeeSearch = ({
       } catch {
         if (active) {
           setEmployees([]);
-          setError("Unable to search employees.");
+          setError(err.response?.data?.message || `Unable to search employees (${err.response?.status || "network error"}).`);
         }
       } finally {
         if (active) setLoading(false);

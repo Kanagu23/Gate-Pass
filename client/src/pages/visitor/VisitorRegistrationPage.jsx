@@ -12,6 +12,8 @@ import Input from "../../components/common/Input";
 import PageHeader from "../../components/common/PageHeader";
 import Select from "../../components/common/Select";
 import Textarea from "../../components/common/Textarea";
+import PhotoCapture from "../../components/common/PhotoCapture";
+import { DIVISIONS } from "../../config/divisions";
 
 
 const initialForm = {
@@ -21,6 +23,11 @@ const initialForm = {
   address: "",
   organization: "",
   idProofNo: "",
+  idProofType: "",
+  country: "INDIA",
+  state: "",
+  pinCode: "",
+  visitingDivision: "",
   profilePhoto: "",
   visitingPurpose: "",
   remarks: "",
@@ -50,17 +57,20 @@ const [loadingDepartments, setLoadingDepartments] = useState(true);
 const [departmentError, setDepartmentError] = useState("");
   const { user } = useAuth();
 
-  const dashboardPath = user?.role === "ADMIN" ? "/admin" : "/gate";
+  const dashboardPath = ["ADMIN", "SYSTEM_ADMIN", "DIVISION_HR"].includes(user?.role) ? "/admin" : ["EMPLOYEE", "DIRECTOR"].includes(user?.role) ? `/${user.role.toLowerCase()}` : "/gate";
 
   const updateField = (event) => {
     const { name, value } = event.target;
-    setForm((previous) => ({ ...previous, [name]: value }));
+    const upper = ["name", "organization", "address", "country", "state", "remarks"].includes(name);
+    setForm((previous) => ({ ...previous, [name]: upper ? value.toUpperCase() : value }));
   };
 
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (!form.visitingDivision) { setFormError("Please select a visiting division."); return; }
+    if (!form.idProofType) { setFormError("Please select an ID proof type."); return; }
     if (!employee) {
       setFormError("Please search and select a visiting employee.");
       return;
@@ -73,7 +83,7 @@ const [departmentError, setDepartmentError] = useState("");
 
     const response = await registerVisitor({
   ...form,
-  name: form.name.trim(),
+  name: form.name.trim().toUpperCase(),
   mobile: form.mobile.trim(),
   visitingEmployee: employee.id,
   validationHours: Number(form.validationHours),
@@ -130,7 +140,7 @@ useEffect(() => {
       <PageHeader
         backTo={dashboardPath}
         backLabel="Dashboard"
-        title="Register visitor"
+        title="VISITOR REGISTER"
         description="Create a visitor request and send it to the visiting employee for approval."
       />
 
@@ -158,8 +168,20 @@ useEffect(() => {
             <Input id="mobile" name="mobile" label="Mobile number" type="tel" value={form.mobile} onChange={updateField} required />
             <Input id="email" name="email" label="Email address" type="email" value={form.email} onChange={updateField} />
             <Input id="organization" name="organization" label="Organization" value={form.organization} onChange={updateField} />
-            <Input id="idProofNo" name="idProofNo" label="ID proof number" value={form.idProofNo} onChange={updateField} />
+            <Select id="idProofType" name="idProofType" label="ID proof type" value={form.idProofType} onChange={updateField} required>
+              <option value="">Select identity proof</option>
+              <option value="AADHAAR">Aadhaar (last 4 digits only)</option>
+              <option value="PASSPORT">Passport</option>
+              <option value="DRIVING_LICENCE">Driving licence</option>
+              <option value="VOTER_ID">Voter ID</option>
+              <option value="OTHER">Other</option>
+            </Select>
+            <Input id="idProofNo" name="idProofNo" label={form.idProofType === "AADHAAR" ? "Last 4 Aadhaar digits" : "ID proof number"} maxLength={form.idProofType === "AADHAAR" ? 4 : 48} value={form.idProofNo} onChange={updateField} />
             <Input id="address" name="address" label="Address" value={form.address} onChange={updateField} />
+            <Input id="country" name="country" label="Country" value={form.country} onChange={updateField} required />
+            <Input id="state" name="state" label="State" value={form.state} onChange={updateField} required />
+            <Input id="pinCode" name="pinCode" label="PIN / Postal code" value={form.pinCode} onChange={updateField} required />
+            <div className="sm:col-span-2"><PhotoCapture label="Capture visitor photograph" value={form.profilePhoto} onChange={(photo) => setForm((old) => ({ ...old, profilePhoto: photo }))} /></div>
 
             <Select
               id="visitingPurpose"
@@ -211,6 +233,16 @@ useEffect(() => {
 >
   <div className="space-y-4">
     <Select
+      id="visitingDivision"
+      label="Visiting division (cross-division visits allowed)"
+      value={form.visitingDivision}
+      onChange={(event) => { setForm((old) => ({ ...old, visitingDivision: event.target.value })); setEmployee(null); setSelectedDepartment(""); }}
+      required
+    >
+      <option value="">Select division</option>
+      {DIVISIONS.map((d) => <option key={d.code} value={d.code}>{d.name}</option>)}
+    </Select>
+    <Select
       id="visitingDepartment"
       label="Department"
       value={selectedDepartment}
@@ -219,7 +251,7 @@ useEffect(() => {
         setEmployee(null);
         setFormError("");
       }}
-      disabled={loadingDepartments}
+      disabled={loadingDepartments || !form.visitingDivision}
       required
     >
       <option value="">
@@ -228,7 +260,7 @@ useEffect(() => {
           : "Select department"}
       </option>
 
-      {departments.map((department) => (
+      {departments.filter((d) => d.division === form.visitingDivision).map((department) => (
         <option
           key={department._id}
           value={department.code}

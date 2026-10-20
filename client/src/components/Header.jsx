@@ -10,6 +10,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { roleLabels } from "../config/navigation";
 import Avatar from "./common/Avatar";
+import { DIVISIONS } from "../config/divisions";
 import Spinner from "./common/Spinner";
 
 const today = () =>
@@ -24,6 +25,9 @@ const Header = ({ collapsed = false, onMenuClick, onToggleCollapse }) => {
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [division, setDivision] = useState(() => localStorage.getItem("gatepass:division") || "");
+  const globalAccess = user?.role === "SYSTEM_ADMIN" || (user?.role === "ADMIN" && !user?.division);
+  const selectDivision = (value) => { setDivision(value); localStorage.setItem("gatepass:division", value); window.dispatchEvent(new CustomEvent("gatepass:division-changed", { detail: value })); };
   const [loggingOut, setLoggingOut] = useState(false);
 
   const name = user?.name || user?.employeeName || "User";
@@ -78,7 +82,16 @@ const Header = ({ collapsed = false, onMenuClick, onToggleCollapse }) => {
         </p>
       </div>
 
-      <div className="relative">
+      <div className="flex items-center gap-3">
+        <label className="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
+          <span>Division</span>
+          <select aria-label="Active division" className="rounded-control border border-line bg-white px-2 py-1 text-xs text-ink" value={globalAccess ? division : user?.division || ""} disabled={!globalAccess} onChange={(event) => selectDivision(event.target.value)}>
+            {globalAccess && <option value="">All divisions</option>}
+            {!globalAccess && !user?.division && <option value="">Unassigned</option>}
+            {DIVISIONS.filter((d) => globalAccess || d.code === user?.division).map((d) => <option key={d.code} value={d.code}>{d.name}</option>)}
+          </select>
+        </label>
+        <div className="relative">
         <button
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
@@ -86,7 +99,7 @@ const Header = ({ collapsed = false, onMenuClick, onToggleCollapse }) => {
           aria-haspopup="menu"
           className="flex items-center gap-2 rounded-control py-1 pl-1 pr-2 transition-colors hover:bg-slate-100"
         >
-          <Avatar name={name} size={26} />
+          <Avatar name={name} size={26} src={user?.profilePhoto} />
 
           <div className="hidden text-left leading-tight sm:block">
             <p className="max-w-36 truncate text-xs font-medium text-slate-800">
@@ -137,6 +150,7 @@ const Header = ({ collapsed = false, onMenuClick, onToggleCollapse }) => {
             </div>
           </>
         )}
+      </div>
       </div>
     </header>
   );

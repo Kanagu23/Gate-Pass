@@ -26,6 +26,8 @@ app.use("/api/visitors", require("./routes/visitor.routes"));
 app.use("/api/employees", require("./routes/employee.routes"));
 app.use("/api/dashboard", require("./routes/dashboard.routes"));
 app.use("/api/departments", require("./routes/department.routes"));
+app.use("/api/divisions", require("./routes/division.routes"));
+app.use("/api/reports", require("./routes/report.routes"));
 
 app.use((err, req, res, next) => {
   console.error("API error:", err.message);
@@ -48,6 +50,9 @@ async function startServer() {
   }
 
   await connectDB();
+  const Division = require("./models/Division");
+  const { DIVISIONS } = require("./config/divisions");
+  await Division.bulkWrite(DIVISIONS.map((item) => ({ updateOne: { filter: { code: item.code }, update: { $setOnInsert: { ...item, isActive: true } }, upsert: true } })));
 
   app.listen(PORT, () => {
     console.log(`Gate Pass API running on port ${PORT}`);

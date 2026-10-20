@@ -76,12 +76,14 @@ const searchEmployees = async (req, res) => {
       q = "",
       department = "",
       role = "VISITING_EMPLOYEE",
+      division = "",
     } = req.query;
 
     if (
       typeof q !== "string" ||
       typeof department !== "string" ||
-      typeof role !== "string"
+      typeof role !== "string" ||
+      typeof division !== "string"
     ) {
       return res.status(400).json({
         success: false,
@@ -92,6 +94,8 @@ const searchEmployees = async (req, res) => {
     const search = q.trim();
     const departmentValue = department.trim();
     const searchRole = role.trim().toUpperCase();
+    const { isDivision } = require("../config/divisions");
+    if (division && !isDivision(division)) return res.status(400).json({ success: false, message: "Invalid division" });
 
     if (
       search.length > 100 ||
@@ -114,7 +118,7 @@ const searchEmployees = async (req, res) => {
     // or all internal accounts.
     if (
       ["ALL", "GATE_EMPLOYEE"].includes(searchRole) &&
-      req.user.role !== "ADMIN"
+      !["ADMIN", "SYSTEM_ADMIN"].includes(req.user.role)
     ) {
       return res.status(403).json({
         success: false,
@@ -135,6 +139,8 @@ const searchEmployees = async (req, res) => {
       isActive: true,
     };
 
+    if (division) filter.division = division;
+    else if (searchRole !== "VISITING_EMPLOYEE" && searchRole !== "DEPARTMENT_HEAD" && req.user.division) filter.division = req.user.division;
     // Search by name, email, employee ID,
     // or department.
     if (search) {
@@ -162,7 +168,7 @@ const searchEmployees = async (req, res) => {
 
     const employees = await User.find(filter)
       .select(
-        "_id employeeId name email phone department role"
+        "_id employeeId name email phone department division role"
       )
       .sort({ name: 1 })
       .limit(20)
@@ -177,6 +183,7 @@ const searchEmployees = async (req, res) => {
         email: employee.email,
         phone: employee.phone,
         department: employee.department,
+        division: employee.division,
         role: employee.role,
       })),
     });

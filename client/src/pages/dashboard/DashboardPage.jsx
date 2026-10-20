@@ -104,7 +104,7 @@ const greeting = () => {
 const DashboardPage = ({ role }) => {
   const { user } = useAuth();
 
-  const isAdmin = role === "ADMIN";
+  const isAdmin = ["SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"].includes(role);
   const actions = quickActionsFor(user);
   const firstName = (user?.name || user?.employeeName || "").split(" ")[0];
 

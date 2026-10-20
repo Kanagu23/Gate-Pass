@@ -18,7 +18,7 @@ const router = express.Router();
 router.get(
   "/stats",
   authenticate,
-  allowRoles("ADMIN"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"),
   getDashboardStats
 );
 
@@ -26,13 +26,13 @@ router.get(
 router.get(
   "/analytics",
   authenticate,
-  allowRoles("ADMIN"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"),
   getDashboardAnalytics
 );
 router.get(
   "/recent-visitors",
   authenticate,
-  allowRoles("ADMIN"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"),
   getRecentVisitors
 );
 

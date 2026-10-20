@@ -1,10 +1,13 @@
 
 const Department = require("../models/Departments");
 const User = require("../models/Users");
+const { isDivision } = require("../config/divisions");
 
 const createDepartment = async (req, res) => {
   try {
-    const { code, name, description } = req.body;
+    const { code, name, description, division } = req.body;
+    const selectedDivision = req.user.role === "SYSTEM_ADMIN" || (req.user.role === "ADMIN" && !req.user.division) ? division : req.user.division;
+    if (!isDivision(selectedDivision)) return res.status(400).json({ success: false, message: "A valid division is required" });
 
     if (
       typeof code !== "string" ||
@@ -43,6 +46,7 @@ const createDepartment = async (req, res) => {
           ? description.trim()
           : "",
       createdBy: req.user._id,
+      division: selectedDivision,
     });
 
     return res.status(201).json({
@@ -69,7 +73,8 @@ const createDepartment = async (req, res) => {
 
 const getDepartments = async (req, res) => {
   try {
-    const departments = await Department.find()
+    const filter = req.user.role === "SYSTEM_ADMIN" || (req.user.role === "ADMIN" && !req.user.division) ? {} : { division: req.user.division };
+    const departments = await Department.find(filter)
       .populate("head", "employeeId name email department")
       .sort({ name: 1 });
 
@@ -107,6 +112,9 @@ const assignDepartmentHead = async (req, res) => {
       departmentId
     );
 
+    if (department && req.user.role !== "SYSTEM_ADMIN" && req.user.division && department.division !== req.user.division) {
+      return res.status(403).json({ success: false, message: "Division access denied" });
+    }
     if (!department) {
       return res.status(404).json({
         success: false,
@@ -134,6 +142,7 @@ const assignDepartmentHead = async (req, res) => {
       });
     }
 
+    if (employee.division !== department.division) return res.status(400).json({ success: false, message: "Employee must belong to the same division" });
     // Existing Users model stores department as a string.
 
 const employeeDepartment = employee.department

@@ -8,7 +8,12 @@ const {
   PERMISSION_VALUES,
 } = require("../constants/permissions");
 
-const roles = ["ADMIN", "GATE_EMPLOYEE", "EMPLOYEE", "DIRECTOR"];
+const roles = ["SYSTEM_ADMIN", "ADMIN", "DIVISION_HR", "GATE_EMPLOYEE", "EMPLOYEE", "DIRECTOR"];
+const { isDivision } = require("../config/divisions");
+const canManage = (actor, target) => actor.role === "SYSTEM_ADMIN" ||
+  (actor.role === "ADMIN" && target.role !== "SYSTEM_ADMIN" && (!actor.division || target.division === actor.division)) ||
+  (actor.role === "DIVISION_HR" && !!actor.division && target.division === actor.division && ["EMPLOYEE", "DIRECTOR", "GATE_EMPLOYEE"].includes(target.role));
+const validPhoto = (photo) => !photo || (typeof photo === "string" && /^data:image\/jpeg;base64,[a-zA-Z0-9+/=]+$/.test(photo) && photo.length <= 350000);
 
 
 const cookieOptions = {
@@ -27,6 +32,9 @@ function publicUser(user) {
     email: user.email,
     phone: user.phone,
     department: user.department,
+    division: user.division || "",
+    profilePhoto: user.profilePhoto || "",
+    permissions: user.permissions || [],
     role: user.role,
     isActive: user.isActive,
   };
@@ -104,8 +112,7 @@ function me(req, res) {
 }
 
 async function createUser(req, res) {
-  const { name, email, password, role, phone, department } =
-    req.body;
+  const { name, email, password, role, phone, department, division, profilePhoto } = req.body;
 
   if (
     typeof name !== "string" ||
@@ -125,6 +132,10 @@ async function createUser(req, res) {
   }
 
   const normalizedEmail = email.trim().toLowerCase();
+  const assignedDivision = req.user.role === "SYSTEM_ADMIN" || (req.user.role === "ADMIN" && !req.user.division) ? division : req.user.division;
+  if (!isDivision(assignedDivision) || !validPhoto(profilePhoto) || !canManage(req.user, { division: assignedDivision, role })) {
+    return res.status(403).json({ success: false, message: "Invalid division, role, or profile photo for this account" });
+  }
 
 const isEmployeeRole = [
   "GATE_EMPLOYEE",
@@ -136,7 +147,13 @@ const employeeId = isEmployeeRole
   ? await generateEmployeeId()
   : undefined;
 
-const passwordHash = await bcrypt.hash(password, 12);
+  // Department must belong to the user's assigned division.
+  if (department) {
+    const Department = require("../models/Departments");
+    const validDepartment = await Department.exists({ code: department.trim().toUpperCase(), division: assignedDivision, isActive: true });
+    if (!validDepartment) return res.status(400).json({ success: false, message: "Department does not belong to this division" });
+  }
+  const passwordHash = await bcrypt.hash(password, 12);
 
 try {
   const user = await User.create({
@@ -146,8 +163,9 @@ try {
     role,
     employeeId,
     phone: typeof phone === "string" ? phone.trim() : "",
-    department:
-      typeof department === "string" ? department.trim() : "",
+    department: typeof department === "string" ? department.trim() : "",
+    division: assignedDivision,
+    profilePhoto: profilePhoto || "",
   });
 
   return res.status(201).json({
@@ -168,9 +186,12 @@ try {
 
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find()
+    const actor = req.user;
+    const filter = actor.role === "SYSTEM_ADMIN" || (actor.role === "ADMIN" && !actor.division) ? {} : { division: actor.division };
+    if (actor.role === "DIVISION_HR") filter.role = { $in: ["EMPLOYEE", "DIRECTOR", "GATE_EMPLOYEE"] };
+    const users = await User.find(filter)
       .select(
-        "_id employeeId name email phone department role isActive permissions createdAt"
+        "_id employeeId name email phone department division role isActive permissions createdAt"
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -217,8 +238,9 @@ const updateUserStatus = async (req, res) => {
       });
     }
 
+    if (!canManage(req.user, targetUser)) return res.status(403).json({ success: false, message: "Cannot manage user outside your division or role" });
     // Admin accounts cannot be deactivated through this endpoint.
-    if (targetUser.role === "ADMIN") {
+    if (["SYSTEM_ADMIN", "ADMIN"].includes(targetUser.role)) {
       return res.status(403).json({
         success: false,
         message: "Admin account status cannot be changed",
@@ -286,8 +308,9 @@ const updateUserPermissions = async (req, res) => {
       });
     }
 
+    if (!canManage(req.user, user)) return res.status(403).json({ success: false, message: "Cannot manage permissions outside your division or role" });
     // Admin permissions cannot be modified.
-    if (user.role === "ADMIN") {
+    if (["SYSTEM_ADMIN", "ADMIN"].includes(user.role)) {
       return res.status(403).json({
         success: false,
         message: "Admin permissions cannot be modified",

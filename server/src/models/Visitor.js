@@ -22,6 +22,12 @@ const visitorSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
     },
+    idProofType: { type: String, enum: ["AADHAAR", "PASSPORT", "DRIVING_LICENCE", "VOTER_ID", "OTHER", ""], default: "" },
+    country: { type: String, trim: true, uppercase: true, default: "INDIA" },
+    state: { type: String, trim: true, uppercase: true, default: "" },
+    pinCode: { type: String, trim: true, default: "" },
+    registeringDivision: { type: String, trim: true, default: "" },
+    visitingDivision: { type: String, trim: true, default: "" },
     address: {
       type: String,
       trim: true,

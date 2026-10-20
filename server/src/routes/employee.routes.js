@@ -32,7 +32,7 @@ router.get(
   "/search",
   authenticate,
   allowRoleOrPermission(
-    ["ADMIN", "GATE_EMPLOYEE"],
+    ["SYSTEM_ADMIN", "ADMIN", "GATE_EMPLOYEE"],
     PERMISSIONS.VISITOR_REGISTER
   ),
   searchEmployees

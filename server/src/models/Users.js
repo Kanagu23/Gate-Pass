@@ -28,6 +28,8 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    division: { type: String, trim: true, default: "" },
+    profilePhoto: { type: String, default: "" },
     department: {
       type: String,
       trim: true,
@@ -35,7 +37,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       required: true,
-      enum: ["ADMIN", "GATE_EMPLOYEE", "EMPLOYEE", "DIRECTOR"],
+      enum: ["SYSTEM_ADMIN", "ADMIN", "DIVISION_HR", "GATE_EMPLOYEE", "EMPLOYEE", "DIRECTOR"],
     },
     passwordHash: {
       type: String,

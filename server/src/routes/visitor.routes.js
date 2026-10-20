@@ -33,7 +33,7 @@ router.post(
   "/",
   authenticate,
   allowRoleOrPermission(
-    ["ADMIN", "GATE_EMPLOYEE"],
+    ["SYSTEM_ADMIN", "ADMIN", "GATE_EMPLOYEE"],
     PERMISSIONS.VISITOR_REGISTER
   ),
   registerVisitor
@@ -64,31 +64,31 @@ router.patch(
 router.patch(
   "/:id/check-in",
   authenticate,
-  allowRoles("ADMIN", "GATE_EMPLOYEE"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "GATE_EMPLOYEE"),
   checkInVisitor
 );
 router.patch(
   "/:id/check-out",
   authenticate,
-  allowRoles("ADMIN", "GATE_EMPLOYEE"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "GATE_EMPLOYEE"),
   checkOutVisitor
 );
 router.post(
   "/verify-pass",
   authenticate,
-  allowRoles("ADMIN", "GATE_EMPLOYEE"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "GATE_EMPLOYEE"),
   verifyVisitorPass
 );
 router.patch(
   "/check-out/qr",
   authenticate,
-  allowRoles("ADMIN", "GATE_EMPLOYEE"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "GATE_EMPLOYEE"),
   checkOutByQR
 );
 router.get(
   "/:id/pass",
   authenticate,
-  allowRoles("ADMIN", "GATE_EMPLOYEE"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "GATE_EMPLOYEE"),
   getVisitorPass
 );
 

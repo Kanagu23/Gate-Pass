@@ -13,6 +13,9 @@ const {
   PERMISSIONS,
 } = require("../constants/permissions");
 
+const { isDivision } = require("../config/divisions");
+const validPhoto = (photo) => !photo || (typeof photo === "string" && /^data:image\/jpeg;base64,[a-zA-Z0-9+/=]+$/.test(photo) && photo.length <= 350000);
+const cap = (value) => typeof value === "string" ? value.trim().toUpperCase() : "";
 const validPurposes = ["Audit", "Relative", "Suppliers", "Others"];
 
 const registerVisitor = async (req, res) => {
@@ -29,12 +32,14 @@ const registerVisitor = async (req, res) => {
       remarks,
       visitingEmployee,
       validationHours,
+      idProofType,
+      country, state, pinCode, visitingDivision,
     } = req.body;
 
     // Only gate employees and admins can register visitors.
    
 const canRegister =
-  ["ADMIN", "GATE_EMPLOYEE"].includes(req.user.role) ||
+  ["SYSTEM_ADMIN", "ADMIN", "GATE_EMPLOYEE"].includes(req.user.role) ||
   hasPermission(req.user, PERMISSIONS.VISITOR_REGISTER);
 
 if (!canRegister) {
@@ -89,6 +94,15 @@ if (!canRegister) {
       });
     }
 
+    if (!validPhoto(profilePhoto) || !["AADHAAR", "PASSPORT", "DRIVING_LICENCE", "VOTER_ID", "OTHER"].includes(idProofType) ||
+      typeof country !== "string" || !country.trim() || typeof state !== "string" || !state.trim() ||
+      typeof pinCode !== "string" || !/^[A-Za-z0-9 -]{3,12}$/.test(pinCode.trim())) {
+      return res.status(400).json({ success: false, message: "Valid ID type, country, state, postal code, and JPEG photo are required" });
+    }
+    // Aadhaar should not be collected as a full number; accept only last four digits.
+    if (idProofType === "AADHAAR" && idProofNo && !/^\d{4}$/.test(idProofNo.trim())) {
+      return res.status(400).json({ success: false, message: "Enter only the last four Aadhaar digits" });
+    }
     const hours = validationHours === undefined ? 24 : validationHours;
 
     if (!Number.isInteger(hours) || hours < 1 || hours > 168) {
@@ -112,20 +126,31 @@ if (!canRegister) {
       });
     }
 
+    const targetDivision = visitingDivision || employee.division;
+    if (!isDivision(targetDivision) || employee.division !== targetDivision) {
+      return res.status(400).json({ success: false, message: "Visiting division must match the selected employee" });
+    }
+    if (req.user.division && !isDivision(req.user.division)) {
+      return res.status(403).json({ success: false, message: "Invalid registering division" });
+    }
     // Use the existing Counter model through the visitor ID generator.
     const visitorId = await generateVisitorId();
 
     const visitor = await Visitor.create({
       visitorId,
-      name: name.trim(),
+      name: cap(name),
+      idProofType,
+      country: cap(country), state: cap(state), pinCode: pinCode.trim(),
+      registeringDivision: req.user.division || targetDivision,
+      visitingDivision: targetDivision,
       mobile: mobile.trim(),
       email: email?.trim().toLowerCase(),
-      address: address?.trim(),
-      organization: organization?.trim(),
+      address: cap(address),
+      organization: cap(organization),
       idProofNo: idProofNo?.trim(),
       profilePhoto: profilePhoto?.trim(),
       visitingPurpose,
-      remarks: remarks?.trim(),
+      remarks: cap(remarks),
       visitingEmployee: employee._id,
       createdBy: req.user._id,
       validationHours: hours,
@@ -407,6 +432,7 @@ const checkOutVisitor = async (req, res) => {
       status: "CHECKED_IN",
       inTime: { $ne: null },
       outTime: null,
+      ...(req.user.role !== "SYSTEM_ADMIN" && req.user.division ? { visitingDivision: req.user.division } : {}),
     },
     {
       $set: {
@@ -464,8 +490,10 @@ const checkOutByQR = async (req, res) => {
     {
       qrTokenHash: tokenHash,
       status: "CHECKED_IN",
+      ...(req.user.role !== "SYSTEM_ADMIN" && req.user.division ? { visitingDivision: req.user.division } : {}),
       inTime: { $ne: null },
       outTime: null,
+      ...(req.user.role !== "SYSTEM_ADMIN" && req.user.division ? { visitingDivision: req.user.division } : {}),
     },
     {
       $set: {
@@ -514,7 +542,7 @@ const getVisitorPass = async (req, res) => {
     });
   }
 
-  const visitor = await Visitor.findById(id)
+  const visitor = await Visitor.findOne({ _id: id, ...(req.user.role !== "SYSTEM_ADMIN" && req.user.division ? { visitingDivision: req.user.division } : {}) })
     .select("+qrTokenEncrypted")
     .populate(
       "visitingEmployee",
@@ -605,6 +633,7 @@ const verifyVisitorPass = async (req, res) => {
 
   const visitor = await Visitor.findOne({
     qrTokenHash: tokenHash,
+    ...(req.user.role !== "SYSTEM_ADMIN" && req.user.division ? { visitingDivision: req.user.division } : {}),
   })
     .select("+qrTokenHash")
     .populate(
@@ -674,6 +703,8 @@ const getVisitors = async (req, res) => {
 
  
 const filter = status ? { status } : {};
+// Preserve existing Employee/Director assigned-visitor filtering below.
+if (req.user.role !== "SYSTEM_ADMIN" && req.user.division) filter.visitingDivision = req.user.division;
 
 const isFrontDesk = ["ADMIN", "GATE_EMPLOYEE"].includes(
   req.user.role
@@ -690,7 +721,7 @@ if (!isFrontDesk) {
     .select(
   "visitorId name mobile organization visitingPurpose " +
   "visitingEmployee status inTime outTime " +
-  "passExpiresAt createdAt " +
+  "passExpiresAt createdAt visitingDivision registeringDivision " +
   (req.user.role === "ADMIN"
     ? "rejectionReason rejectedAt "
     : "")

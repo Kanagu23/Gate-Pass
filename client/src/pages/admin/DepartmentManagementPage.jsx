@@ -18,17 +18,23 @@ import Card from "../../components/common/Card";
 import Input from "../../components/common/Input";
 import PageHeader from "../../components/common/PageHeader";
 import EmployeeSearch from "../../components/common/EmployeeSearch";
+import { DIVISIONS } from "../../config/divisions";
+import { useAuth } from "../../context/AuthContext";
 
 const initialForm = {
   code: "",
   name: "",
   description: "",
+  division: "",
 };
 
 const DepartmentManagementPage = () => {
     const [selectedDepartment, setSelectedDepartment] = useState(null);
 const [selectedEmployee, setSelectedEmployee] = useState(null);
 const [assigningHead, setAssigningHead] = useState(false);
+const [headError, setHeadError] = useState("");
+  const { user } = useAuth();
+  const globalAccess = user?.role === "SYSTEM_ADMIN" || (user?.role === "ADMIN" && !user?.division);
   const [departments, setDepartments] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(true);
@@ -74,7 +80,7 @@ const [assigningHead, setAssigningHead] = useState(false);
     setSuccess("");
 
     try {
-      await createDepartment(form);
+      await createDepartment({ ...form, division: globalAccess ? form.division : user?.division });
 
       setSuccess("Department created successfully.");
       setForm(initialForm);
@@ -101,7 +107,7 @@ const handleAssignHead = async (event) => {
  
 try {
   if (!selectedEmployee?.employeeId) {
-    setError("Please select an employee.");
+    setHeadError("Please select an employee.");
     return;
   }
 
@@ -116,7 +122,7 @@ try {
 
   await loadDepartments();
 } catch (err) {
-  setError(
+  setHeadError(
     err.response?.data?.message ||
       "Unable to assign Department Head."
   );
@@ -159,6 +165,12 @@ try {
               onSubmit={handleSubmit}
               className="space-y-4"
             >
+              <label className="block text-xs font-medium text-slate-600">Division
+                <select className="field mt-1" value={globalAccess ? form.division : user?.division || ""} disabled={!globalAccess} onChange={(e) => updateField("division", e.target.value)} required>
+                  <option value="">Select division</option>
+                  {DIVISIONS.map((d) => <option key={d.code} value={d.code}>{d.name}</option>)}
+                </select>
+              </label>
               <Input
                 label="Department Code"
                 value={form.code}
@@ -339,6 +351,7 @@ try {
 />
         </div>
 
+        {headError && <p role="alert" className="text-xs text-red-600">{headError}</p>}
         <p className="text-xs text-slate-500">
           Select an active Employee or Director
           belonging to this department.

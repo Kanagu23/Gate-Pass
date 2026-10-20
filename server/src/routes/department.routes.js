@@ -18,7 +18,7 @@ const router = express.Router();
 router.post(
   "/",
   authenticate,
-  allowRoles("ADMIN"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"),
   createDepartment
 );
 
@@ -29,7 +29,7 @@ router.get(
   "/",
   authenticate,
   allowRoles(
-    "ADMIN",
+    "SYSTEM_ADMIN", "DIVISION_HR", "ADMIN",
     "GATE_EMPLOYEE",
     "EMPLOYEE",
     "DIRECTOR"
@@ -39,7 +39,7 @@ router.get(
 router.patch(
   "/:departmentId/head",
   authenticate,
-  allowRoles("ADMIN"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"),
   assignDepartmentHead
 );
 module.exports = router;

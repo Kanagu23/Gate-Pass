@@ -25,25 +25,25 @@ router.get("/me", authenticate, me);
 router.post(
   "/users",
   authenticate,
-  allowRoles("ADMIN"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"),
   createUser
 );
 router.get(
   "/users",
   authenticate,
-  allowRoles("ADMIN"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"),
   getUsers
 );
 router.patch(
   "/users/:userId/status",
   authenticate,
-  allowRoles("ADMIN"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"),
   updateUserStatus
 );
 router.patch(
   "/users/:userId/permissions",
   authenticate,
-  allowRoles("ADMIN"),
+  allowRoles("SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"),
   updateUserPermissions
 );
 module.exports = router;

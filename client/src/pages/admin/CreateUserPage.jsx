@@ -10,17 +10,23 @@ import Input from "../../components/common/Input";
 import PageHeader from "../../components/common/PageHeader";
 import Select from "../../components/common/Select";
 import { getDepartments } from "../../api/department.api";
+import { DIVISIONS } from "../../config/divisions";
+import PhotoCapture from "../../components/common/PhotoCapture";
+import { useAuth } from "../../context/AuthContext";
 
 const initialForm = {
   name: "",
   email: "",
   phone: "",
   department: "",
+  division: "",
+  profilePhoto: "",
   role: "GATE_EMPLOYEE",
   password: "",
 };
 
 const roleOptions = [
+  { value: "DIVISION_HR", label: "Division HR" },
   { value: "GATE_EMPLOYEE", label: "Gate Employee" },
   { value: "EMPLOYEE", label: "Employee" },
   { value: "DIRECTOR", label: "Director" },
@@ -28,6 +34,8 @@ const roleOptions = [
 
 const CreateUserPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const globalAccess = user?.role === "SYSTEM_ADMIN" || (user?.role === "ADMIN" && !user?.division);
 
   const [form, setForm] = useState(initialForm);
   const [saving, setSaving] = useState(false);
@@ -54,7 +62,7 @@ const CreateUserPage = () => {
     setCreatedUser(null);
 
     try {
-      const response = await createUser(form);
+      const response = await createUser({ ...form, division: globalAccess ? form.division : user?.division });
 
       setCreatedUser(response.user);
       setForm(initialForm);
@@ -134,6 +142,17 @@ const CreateUserPage = () => {
           />
 
           <Select
+            label="Division"
+            value={globalAccess ? form.division : user?.division || ""}
+            disabled={!globalAccess}
+            onChange={(event) => { updateField("division", event.target.value); updateField("department", ""); }}
+            required
+          >
+            <option value="">Select division</option>
+            {DIVISIONS.map((d) => <option key={d.code} value={d.code}>{d.name}</option>)}
+          </Select>
+
+          <Select
             label="Department"
             value={form.department}
             onChange={(event) => updateField("department", event.target.value)}
@@ -148,7 +167,7 @@ const CreateUserPage = () => {
                   : "Select department"}
             </option>
 
-            {departments.map((department) => (
+            {departments.filter((d) => d.division === (globalAccess ? form.division : user?.division)).map((department) => (
               <option key={department._id} value={department.code}>
                 {department.name}
               </option>
@@ -161,7 +180,8 @@ const CreateUserPage = () => {
             onChange={(event) => updateField("role", event.target.value)}
             required
           >
-            {roleOptions.map((role) => (
+            {globalAccess && user?.role === "SYSTEM_ADMIN" && <option value="ADMIN">Division Admin</option>}
+            {roleOptions.filter((role) => user?.role !== "DIVISION_HR" || role.value !== "DIVISION_HR").map((role) => (
               <option key={role.value} value={role.value}>
                 {role.label}
               </option>
@@ -178,6 +198,7 @@ const CreateUserPage = () => {
             required
           />
 
+          <div className="sm:col-span-2"><PhotoCapture label="Employee profile photo" value={form.profilePhoto} onChange={(photo) => updateField("profilePhoto", photo)} /></div>
           <div className="flex justify-end gap-2 sm:col-span-2">
             <Button
               type="button"

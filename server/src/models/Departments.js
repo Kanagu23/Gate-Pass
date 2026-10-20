@@ -18,6 +18,7 @@ const departmentSchema = new mongoose.Schema(
       trim: true,
     },
 
+    division: { type: String, trim: true, default: "" },
     description: {
       type: String,
       trim: true,
