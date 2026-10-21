@@ -53,8 +53,7 @@ const Login = () => {
     <main className="flex min-h-screen items-center justify-center bg-canvas p-4">
       <div className="rise grid w-full max-w-[880px] overflow-hidden rounded-xl border border-line bg-white shadow-[0_20px_60px_-20px_rgba(16,19,46,0.18)] md:min-h-[500px] md:grid-cols-[1.05fr_1fr]">
         {/* Brand panel */}
-        <section className="relative hidden flex-col justify-between overflow-hidden bg-ink p-8 text-white md:flex">
-          {/* Subtle dot grid + one soft glow */}
+<section className="relative hidden flex-col justify-between overflow-hidden bg-[#10132e] p-8 text-white md:flex">          {/* Subtle dot grid + one soft glow */}
           <div
             aria-hidden="true"
             className="absolute inset-0 opacity-[0.07]"
@@ -73,7 +72,7 @@ const Login = () => {
             <img
               src="/khgroup-logo.png"
               alt="KHGROUP"
-              className="h-8 w-auto rounded bg-white p-1 object-contain"
+            className="h-8 w-auto rounded !bg-white p-1 object-contain"
             />
             <span className="text-sm font-semibold tracking-tight">
               Gate Pass

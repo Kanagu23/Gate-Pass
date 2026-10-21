@@ -11,6 +11,7 @@ import {
 
 import Card from "../common/Card";
 import { divisionName } from "../../config/divisions";
+import { chartTheme } from "../../config/chartTheme";
 
 const DivisionVisitorsChart = ({ data = [] }) => {
   const chartData = data.map((item) => ({
@@ -45,7 +46,7 @@ const DivisionVisitorsChart = ({ data = [] }) => {
               }}
             >
               <CartesianGrid
-                stroke="#e2e8f0"
+                stroke={chartTheme.grid}
                 strokeDasharray="3 3"
                 vertical={false}
               />
@@ -59,7 +60,7 @@ const DivisionVisitorsChart = ({ data = [] }) => {
                 textAnchor="end"
                 height={55}
                 tick={{
-                  fill: "#64748b",
+                  fill: chartTheme.axis,
                   fontSize: 11,
                 }}
               />
@@ -69,18 +70,19 @@ const DivisionVisitorsChart = ({ data = [] }) => {
                 tickLine={false}
                 axisLine={false}
                 tick={{
-                  fill: "#64748b",
+                  fill: chartTheme.axis,
                   fontSize: 12,
                 }}
               />
 
-              <Tooltip
-                cursor={{ fill: "#f1f5f9" }}
-                contentStyle={{
-                  borderRadius: "6px",
-                  border: "1px solid #e2e8f0",
-                }}
-              />
+             
+<Tooltip
+  cursor={chartTheme.cursor}
+  contentStyle={chartTheme.tooltip}
+  labelStyle={chartTheme.label}
+  itemStyle={chartTheme.item}
+/>
+
 
               <Bar
                 dataKey="visitors"

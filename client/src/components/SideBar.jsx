@@ -29,7 +29,7 @@ const Sidebar = ({ mobileOpen = false, collapsed = false, onClose }) => {
         <div
           onClick={onClose}
           aria-hidden="true"
-          className="animate-fade fixed inset-0 z-40 bg-ink/40 backdrop-blur-[2px] md:hidden"
+          className="animate-fade fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] md:hidden"
         />
       )}
 
@@ -100,10 +100,10 @@ const Sidebar = ({ mobileOpen = false, collapsed = false, onClose }) => {
                         className={`group relative flex h-8 items-center gap-2.5 rounded-control px-2.5 text-[13px] font-medium transition-colors duration-150 ${
                           collapsed ? "md:justify-center md:px-0" : ""
                         } ${
-                          active
-                            ? "bg-brand-soft text-brand"
-                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                        }`}
+  active
+    ? "bg-brand-soft text-brand"
+    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+}`} 
                       >
                         <span
                           aria-hidden="true"
@@ -125,8 +125,8 @@ const Sidebar = ({ mobileOpen = false, collapsed = false, onClose }) => {
                         {collapsed && (
                           <span
                             role="tooltip"
-                            className="pointer-events-none absolute left-full z-50 ml-2.5 hidden whitespace-nowrap rounded-md bg-ink px-2 py-1 text-xs font-medium text-white opacity-0 shadow-pop transition-opacity delay-100 duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 md:block"
-                          >
+                            className="pointer-events-none absolute left-full z-50 ml-2.5 hidden whitespace-nowrap rounded-md bg-[#10132e] px-2 py-1 text-xs font-medium text-white opacity-0 shadow-pop transition-opacity delay-100 duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 md:block"
+                                                      >
                             {item.label}
                           </span>
                         )}

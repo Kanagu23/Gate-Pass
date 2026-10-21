@@ -10,6 +10,7 @@ import {
 } from "recharts";
 
 import Card from "../common/Card";
+import { chartTheme } from "../../config/chartTheme";
 
 const DepartmentVisitorsChart = ({ data = [] }) => {
   const chartData = data.map((item) => ({
@@ -45,7 +46,7 @@ const DepartmentVisitorsChart = ({ data = [] }) => {
               }}
             >
               <CartesianGrid
-                stroke="#e2e8f0"
+                stroke={chartTheme.grid}
                 strokeDasharray="3 3"
                 horizontal={false}
               />
@@ -56,7 +57,7 @@ const DepartmentVisitorsChart = ({ data = [] }) => {
                 tickLine={false}
                 axisLine={false}
                 tick={{
-                  fill: "#64748b",
+                  fill: chartTheme.axis,
                   fontSize: 12,
                 }}
               />
@@ -68,18 +69,19 @@ const DepartmentVisitorsChart = ({ data = [] }) => {
                 tickLine={false}
                 axisLine={false}
                 tick={{
-                  fill: "#64748b",
+                  fill: chartTheme.axis,
                   fontSize: 11,
                 }}
               />
 
-              <Tooltip
-                cursor={{ fill: "#f1f5f9" }}
-                contentStyle={{
-                  borderRadius: "6px",
-                  border: "1px solid #e2e8f0",
-                }}
-              />
+             
+<Tooltip
+  cursor={chartTheme.cursor}
+  contentStyle={chartTheme.tooltip}
+  labelStyle={chartTheme.label}
+  itemStyle={chartTheme.item}
+/>
+
 
               <Bar
                 dataKey="visitors"

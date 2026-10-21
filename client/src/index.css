@@ -119,8 +119,10 @@
 }
 
 
-/* Existing Gate Pass surfaces and text in dark mode */
+
+/* Gate Pass — Global Dark Mode */
 @layer utilities {
+  /* Main surfaces */
   [data-theme="dark"] .bg-white {
     background-color: #151f31;
   }
@@ -134,13 +136,21 @@
     background-color: #303d52;
   }
 
+  [data-theme="dark"] .bg-white\/85 {
+    background-color: rgba(21, 31, 49, 0.9);
+  }
+
+  /* Neutral text */
   [data-theme="dark"] .text-slate-900,
   [data-theme="dark"] .text-slate-800,
   [data-theme="dark"] .text-slate-700 {
     color: #e4ebf8;
   }
 
-  [data-theme="dark"] .text-slate-600,
+  [data-theme="dark"] .text-slate-600 {
+    color: #cbd5e1;
+  }
+
   [data-theme="dark"] .text-slate-500 {
     color: #abb9ce;
   }
@@ -153,26 +163,59 @@
     color: #8697b0;
   }
 
-  [data-theme="dark"] .bg-blue-50 {
-    background-color: #192e56;
-  }
-
-  [data-theme="dark"] .bg-emerald-50 {
-    background-color: #103b34;
-  }
-
-  [data-theme="dark"] .bg-amber-50 {
-    background-color: #43321c;
-  }
-
+  /* Red — rejected / errors */
   [data-theme="dark"] .bg-red-50 {
     background-color: #48242c;
   }
 
-  [data-theme="dark"] .bg-white\/85 {
-    background-color: rgba(21, 31, 49, 0.9);
+  [data-theme="dark"] .bg-red-100 {
+    background-color: #552b35;
   }
 
+  [data-theme="dark"] .text-red-700 {
+    color: #fca5a5;
+  }
+
+  /* Green — approved / success */
+  [data-theme="dark"] .bg-emerald-50 {
+    background-color: #103b34;
+  }
+
+  [data-theme="dark"] .bg-emerald-100 {
+    background-color: #174a3d;
+  }
+
+  [data-theme="dark"] .text-emerald-700 {
+    color: #6ee7b7;
+  }
+
+  /* Amber — pending / warning */
+  [data-theme="dark"] .bg-amber-50 {
+    background-color: #43321c;
+  }
+
+  [data-theme="dark"] .bg-amber-100 {
+    background-color: #594322;
+  }
+
+  [data-theme="dark"] .text-amber-700 {
+    color: #fcd34d;
+  }
+
+  /* Blue — checked in / information */
+  [data-theme="dark"] .bg-blue-50 {
+    background-color: #192e56;
+  }
+
+  [data-theme="dark"] .bg-blue-100 {
+    background-color: #223d6b;
+  }
+
+  [data-theme="dark"] .text-blue-700 {
+    color: #93c5fd;
+  }
+
+  /* Shared form fields */
   [data-theme="dark"] .field {
     background-color: #182437;
     border-color: #39455d;
@@ -189,6 +232,7 @@
     color: #93a2bb;
   }
 
+  /* Tables */
   [data-theme="dark"] .tbl thead th {
     background-color: #202c40;
     border-bottom-color: #39455d;
@@ -203,6 +247,7 @@
     background-color: #202c40;
   }
 
+  /* Interactive hover states */
   [data-theme="dark"] .hover\:bg-slate-50:hover,
   [data-theme="dark"] .hover\:bg-slate-100:hover {
     background-color: #29374e;
@@ -213,7 +258,30 @@
   [data-theme="dark"] .hover\:text-slate-900:hover {
     color: #ffffff;
   }
+
+  /* Sidebar selected-item contrast */
+  [data-theme="dark"] .bg-brand-soft {
+    background-color: #253455;
+  }
+
+  [data-theme="dark"] .text-brand {
+    color: #a4b9ff;
+  }
+
+  /* Preserve white text on primary buttons */
+  [data-theme="dark"] .text-white {
+    color: #ffffff;
+  }
+    [data-theme="dark"] .bg-brand-soft {
+    background-color: #253455;
+  }
+
+  [data-theme="dark"] .text-brand {
+    color: #a4b9ff;
+  }
 }
+
+
 
 /* Print remains light regardless of the selected theme */
 @media print {

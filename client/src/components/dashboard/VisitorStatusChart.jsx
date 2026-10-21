@@ -8,7 +8,7 @@ import {
   Tooltip,
 } from "recharts";
 import Card from "../common/Card";
-
+import { chartTheme } from "../../config/chartTheme";
 const STATUS_CONFIG = {
   PENDING: {
     label: "Pending",
@@ -82,16 +82,12 @@ const VisitorStatusChart = ({ data = [] }) => {
                 ))}
               </Pie>
 
-              <Tooltip
-                formatter={(value, name) => [
-                  value,
-                  name,
-                ]}
-                contentStyle={{
-                  borderRadius: "6px",
-                  border: "1px solid #e2e8f0",
-                }}
-              />
+            <Tooltip
+  formatter={(value, name) => [value, name]}
+  contentStyle={chartTheme.tooltip}
+  labelStyle={chartTheme.label}
+  itemStyle={chartTheme.item}
+/>
 
               <Legend
                 verticalAlign="bottom"

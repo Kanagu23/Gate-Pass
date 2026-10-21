@@ -9,7 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import Card from "../common/Card";
-
+import { chartTheme } from "../../config/chartTheme";
 const VisitorActivityChart = ({ data = [] }) => {
   const chartData = data.map((item) => ({
     date: item.date,
@@ -47,17 +47,17 @@ const VisitorActivityChart = ({ data = [] }) => {
               }}
             >
               <CartesianGrid
-                stroke="#e2e8f0"
-                strokeDasharray="3 3"
-                vertical={false}
-              />
+  stroke="var(--color-line)"
+  strokeDasharray="3 3"
+  vertical={false}
+/>
 
               <XAxis
                 dataKey="day"
                 tickLine={false}
                 axisLine={false}
                 tick={{
-                  fill: "#64748b",
+                  fill: chartTheme.axis,
                   fontSize: 12,
                 }}
               />
@@ -67,22 +67,22 @@ const VisitorActivityChart = ({ data = [] }) => {
                 tickLine={false}
                 axisLine={false}
                 tick={{
-                  fill: "#64748b",
+                  fill: chartTheme.axis,
                   fontSize: 12,
                 }}
               />
 
-              <Tooltip
-                cursor={{ fill: "#f1f5f9" }}
-                labelFormatter={(_, payload) =>
-                  payload?.[0]?.payload?.date ?? ""
-                }
-                contentStyle={{
-                  borderRadius: "6px",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-                }}
-              />
+             
+<Tooltip
+  cursor={chartTheme.cursor}
+  labelFormatter={(_, payload) =>
+    payload?.[0]?.payload?.date ?? ""
+  }
+  contentStyle={chartTheme.tooltip}
+  labelStyle={chartTheme.label}
+  itemStyle={chartTheme.item}
+/>
+
 
               <Bar
                 dataKey="visitors"

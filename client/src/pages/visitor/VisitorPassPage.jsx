@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { PDFDownloadLink } from "@react-pdf/renderer";
-import { Download } from "lucide-react";
+import { PDFDownloadLink, pdf } from "@react-pdf/renderer";
+import { Download, Printer } from "lucide-react";
 
 import { getVisitorPass } from "../../api/visitor.api";
 import { useAuth } from "../../context/AuthContext";
 import VisitorPassPDF from "../../components/visitor/VisitorPassPdf";
+import {
+  DEFAULT_LAYOUT,
+  PASS_LAYOUTS,
+  getLayout,
+} from "../../components/visitor/passLayouts";
+import Button from "../../components/common/Button";
 import Alert from "../../components/common/Alert";
 import Avatar from "../../components/common/Avatar";
 import Card from "../../components/common/Card";
@@ -13,6 +19,16 @@ import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import Skeleton from "../../components/common/Skeleton";
 import { buttonStyles } from "../../components/common/buttonStyles";
+
+const LAYOUT_KEY = "gatepass:pass-layout";
+
+const readLayout = () => {
+  try {
+    return getLayout(localStorage.getItem(LAYOUT_KEY)).id;
+  } catch {
+    return DEFAULT_LAYOUT;
+  }
+};
 
 const Info = ({ label, value, mono = false }) => (
   <div className="flex items-baseline justify-between gap-4 py-2 text-[13px] first:pt-0 last:pb-0 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
@@ -42,6 +58,45 @@ const backTo = location.pathname.startsWith("/admin/")
   const [visitor, setVisitor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [layout, setLayout] = useState(readLayout);
+  const [printing, setPrinting] = useState(false);
+  const [printError, setPrintError] = useState("");
+
+  const chooseLayout = (event) => {
+    const next = event.target.value;
+    setLayout(next);
+    try {
+      localStorage.setItem(LAYOUT_KEY, next);
+    } catch {
+      /* preference only; ignore storage failures */
+    }
+  };
+
+  // Open the PDF in a new tab so the browser's print dialog is one click away.
+  const handlePrint = async () => {
+    setPrintError("");
+    setPrinting(true);
+
+    // Opened synchronously so the pop-up blocker treats it as a user action.
+    const tab = window.open("", "_blank");
+
+    try {
+      const blob = await pdf(
+        <VisitorPassPDF visitor={visitor} layout={layout} />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+
+      if (tab) tab.location.href = url;
+      else window.location.assign(url);
+
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      tab?.close();
+      setPrintError("Unable to prepare the pass for printing.");
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -99,6 +154,8 @@ const backTo = location.pathname.startsWith("/admin/")
     <div className="mx-auto max-w-3xl space-y-4">
       <PageHeader backTo={backTo} backLabel="Visitors" title="Visitor pass" />
 
+      {printError && <Alert tone="error">{printError}</Alert>}
+
       {/* Pass summary */}
       <div
         className="rise flex flex-col gap-4 rounded-card border border-line bg-white p-4 shadow-card sm:flex-row sm:items-center"
@@ -118,22 +175,49 @@ const backTo = location.pathname.startsWith("/admin/")
           </p>
         </div>
 
-        <PDFDownloadLink
-          document={<VisitorPassPDF visitor={visitor} />}
-          fileName={`GatePass-${visitor.visitorId}.pdf`}
-          className={buttonStyles("primary", "md")}
-        >
-          {({ loading: pdfLoading, error: pdfError }) => (
-            <>
-              <Download size={14} />
-              {pdfError
-                ? "PDF failed"
-                : pdfLoading
-                  ? "Preparing..."
-                  : "Download PDF"}
-            </>
-          )}
-        </PDFDownloadLink>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={layout}
+            onChange={chooseLayout}
+            aria-label="Print size"
+            title={getLayout(layout).description}
+            className="field w-auto"
+          >
+            {PASS_LAYOUTS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          <Button
+            variant="secondary"
+            onClick={handlePrint}
+            loading={printing}
+            loadingText="Preparing..."
+          >
+            <Printer size={14} />
+            Print
+          </Button>
+
+          <PDFDownloadLink
+            key={layout}
+            document={<VisitorPassPDF visitor={visitor} layout={layout} />}
+            fileName={`GatePass-${visitor.visitorId}-${layout}.pdf`}
+            className={buttonStyles("primary", "md")}
+          >
+            {({ loading: pdfLoading, error: pdfError }) => (
+              <>
+                <Download size={14} />
+                {pdfError
+                  ? "PDF failed"
+                  : pdfLoading
+                    ? "Preparing..."
+                    : "Download"}
+              </>
+            )}
+          </PDFDownloadLink>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
