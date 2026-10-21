@@ -171,6 +171,16 @@ const DetailRow = ({ label, value, last = false }) => (
 
 const VisitorPassPDF = ({ visitor }) => {
   const host = visitor?.visitingEmployee || {};
+  const isActive = visitor?.isPassActive === true;
+
+const passLabel =
+  visitor?.status === "CHECKED_OUT"
+    ? "CHECKED OUT"
+    : visitor?.passExpired
+      ? "EXPIRED"
+      : isActive
+        ? "CHECKED IN"
+        : "INACTIVE";
   const maskedProof = visitor?.idProofMasked || "—";
   const signature = host.signature || host.signatureUrl || "";
 
@@ -199,9 +209,9 @@ const VisitorPassPDF = ({ visitor }) => {
             <Text style={styles.passId}>Pass ID  {display(visitor?.visitorId)}</Text>
           </View>
           <View style={styles.statusColumn}>
-            <Text style={styles.status}>
-              {visitor?.status === "CHECKED_IN" ? "Checked In" : display(visitor?.status)}
-            </Text>
+           <Text style={styles.status}>
+  {passLabel}
+</Text>
             <Text style={styles.checkedInTime}>
               Checked in: {dateTime(visitor?.inTime)}
             </Text>
@@ -247,14 +257,22 @@ const VisitorPassPDF = ({ visitor }) => {
               {visitor?.qrCode ? (
                 <Image src={visitor.qrCode} style={styles.qr} />
               ) : (
-                <Text style={styles.verifyCaption}>QR unavailable</Text>
+               <Text style={styles.verifyCaption}>
+  {isActive ? "QR unavailable" : "PASS INACTIVE"}
+</Text>
               )}
             </View>
             <View style={styles.verifyText}>
-              <Text style={styles.verifyHeading}>Scan this QR code at the gate during exit.</Text>
-              <Text style={styles.verifyCaption}>
-                This secure code is linked to the approved visitor pass and is used for checkout.
-              </Text>
+<Text style={styles.verifyHeading}>
+  {isActive
+    ? "Scan this QR code at the gate during exit."
+    : "Historical visitor pass — not valid for checkout."}
+</Text>           
+   <Text style={styles.verifyCaption}>
+  {isActive
+    ? "This secure QR code is used for visitor checkout."
+    : "Archived copy for record keeping. This pass cannot be used for gate authorization."}
+</Text>
               <Text style={styles.verifyCaption}>
                 Expiry: {dateTime(visitor?.passExpiresAt)}
               </Text>

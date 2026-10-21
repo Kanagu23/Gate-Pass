@@ -532,122 +532,152 @@ const checkOutByQR = async (req, res) => {
   });
 };
 
+
 const getVisitorPass = async (req, res) => {
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(400).json({
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid visitor ID",
+      });
+    }
+
+    // Enforce assigned-division access.
+    const isSystemAdmin = req.user.role === "SYSTEM_ADMIN";
+
+    if (!isSystemAdmin && !req.user.division) {
+      return res.status(403).json({
+        success: false,
+        message: "No division assigned to this account.",
+      });
+    }
+
+    const filter = {
+      _id: id,
+      ...(!isSystemAdmin
+        ? { visitingDivision: req.user.division }
+        : {}),
+    };
+
+    const visitor = await Visitor.findOne(filter)
+      .select("+qrTokenEncrypted")
+      .populate(
+        "visitingEmployee",
+        "employeeId name department division phone email role profilePhoto signature"
+      );
+
+    if (!visitor) {
+      return res.status(404).json({
+        success: false,
+        message: "Visitor not found or access denied.",
+      });
+    }
+
+    // Never generate passes for unapproved, unissued requests.
+    const wasIssued = Boolean(
+      visitor.passIssuedAt ||
+      (visitor.inTime &&
+        ["CHECKED_IN", "CHECKED_OUT"].includes(visitor.status))
+    );
+
+    if (!wasIssued) {
+      return res.status(403).json({
+        success: false,
+        message: "No visitor pass has been issued.",
+      });
+    }
+
+    const expired =
+      !visitor.passExpiresAt ||
+      visitor.passExpiresAt.getTime() <= Date.now();
+
+    const isActive =
+      visitor.status === "CHECKED_IN" &&
+      !expired;
+
+    let qrCode = null;
+
+    // Only release the real checkout credential
+    // when the pass is currently active.
+    if (isActive && visitor.qrTokenEncrypted) {
+      const token = decryptPassToken(
+        visitor.qrTokenEncrypted
+      );
+
+      qrCode = await QRCode.toDataURL(token, {
+        errorCorrectionLevel: "M",
+        margin: 2,
+        width: 300,
+      });
+    }
+
+    // Do not cache sensitive visitor information.
+    res.set("Cache-Control", "no-store");
+
+    return res.status(200).json({
+      success: true,
+      message: isActive
+        ? "Active visitor pass retrieved."
+        : "Historical visitor pass retrieved.",
+
+      visitor: {
+        id: visitor._id,
+        visitorId: visitor.visitorId,
+        name: visitor.name,
+        mobile: visitor.mobile,
+        email: visitor.email,
+        organization: visitor.organization,
+        profilePhoto: visitor.profilePhoto,
+
+        address: visitor.address,
+        country: visitor.country,
+        state: visitor.state,
+        pinCode: visitor.pinCode,
+
+        idProofType: visitor.idProofType,
+        idProofMasked: visitor.idProofNo
+          ? `****${visitor.idProofNo
+              .replace(/\D/g, "")
+              .slice(-4)}`
+          : null,
+
+        visitingPurpose: visitor.visitingPurpose,
+        remarks: visitor.remarks,
+        registeringDivision: visitor.registeringDivision,
+        visitingDivision: visitor.visitingDivision,
+
+        visitingEmployee: visitor.visitingEmployee,
+
+        approvedAt: visitor.approvedAt,
+        approvedBy: visitor.approvedBy,
+
+        status: visitor.status,
+        inTime: visitor.inTime,
+        outTime: visitor.outTime,
+        validationHours: visitor.validationHours,
+        passIssuedAt: visitor.passIssuedAt,
+        passExpiresAt: visitor.passExpiresAt,
+
+        // UI and PDF use these flags.
+        isPassActive: isActive,
+        passExpired: expired,
+
+        // Archived passes contain no checkout token.
+        qrCode,
+      },
+    });
+  } catch (error) {
+    console.error("Retrieve visitor pass error:", error);
+
+    return res.status(500).json({
       success: false,
-      message: "Invalid visitor ID",
+      message: "Unable to retrieve visitor pass.",
     });
   }
-
-  const visitor = await Visitor.findOne({ _id: id, ...(req.user.role !== "SYSTEM_ADMIN" && req.user.division ? { visitingDivision: req.user.division } : {}) })
-    .select("+qrTokenEncrypted")
-   .populate(
-  "visitingEmployee",
-  "employeeId name department division phone email role profilePhoto signature"
-)
-
-  if (!visitor) {
-    return res.status(404).json({
-      success: false,
-      message: "Visitor not found",
-    });
-  }
-
-  // Only currently checked-in visitors can have
-  // an active visitor pass retrieved.
-  if (visitor.status !== "CHECKED_IN") {
-    return res.status(403).json({
-      success: false,
-      message: "Visitor pass is not active",
-    });
-  }
-
-  if (
-    !visitor.passExpiresAt ||
-    visitor.passExpiresAt.getTime() <= Date.now()
-  ) {
-    return res.status(403).json({
-      success: false,
-      message: "Visitor pass has expired",
-    });
-  }
-
-  if (!visitor.qrTokenEncrypted) {
-    return res.status(409).json({
-      success: false,
-      message: "Encrypted QR token is unavailable for this pass",
-    });
-  }
-
-  // Recover the token only on the backend.
-  const token = decryptPassToken(
-    visitor.qrTokenEncrypted
-  );
-
-  const qrCode = await QRCode.toDataURL(token, {
-    errorCorrectionLevel: "M",
-    margin: 2,
-    width: 300,
-  });
-
-  res.set("Cache-Control", "no-store");
-
-  return res.status(200).json({
-    success: true,
-    message: "Visitor pass retrieved successfully",
-  
-visitor: {
-  // Visitor identity
-  id: visitor._id,
-  visitorId: visitor.visitorId,
-  name: visitor.name,
-  mobile: visitor.mobile,
-  email: visitor.email,
-  organization: visitor.organization,
-  profilePhoto: visitor.profilePhoto,
-
-  // Address
-  address: visitor.address,
-  country: visitor.country,
-  state: visitor.state,
-  pinCode: visitor.pinCode,
-
-  // ID proof
-  idProofType: visitor.idProofType,
-  idProofMasked: visitor.idProofNo
-    ? `****${visitor.idProofNo.replace(/\D/g, "").slice(-4)}`
-    : null,
-
-  // Visit information
-  visitingPurpose: visitor.visitingPurpose,
-  remarks: visitor.remarks,
-  registeringDivision: visitor.registeringDivision,
-  visitingDivision: visitor.visitingDivision,
-
-  // Visiting employee
-  visitingEmployee: visitor.visitingEmployee,
-
-  // Authorization
-  approvedAt: visitor.approvedAt,
-  approvedBy: visitor.approvedBy,
-
-  // Pass information
-  status: visitor.status,
-  inTime: visitor.inTime,
-  outTime: visitor.outTime,
-  validationHours: visitor.validationHours,
-  passIssuedAt: visitor.passIssuedAt,
-  passExpiresAt: visitor.passExpiresAt,
-
-  // Keep existing secure QR data
-  qrCode,
-},
-
-  });
 };
+
 
 const verifyVisitorPass = async (req, res) => {
   const { token } = req.body || {};
@@ -754,8 +784,8 @@ if (!isFrontDesk) {
     .select(
   "visitorId name mobile organization visitingPurpose " +
   "visitingEmployee status inTime outTime " +
-  "passExpiresAt createdAt visitingDivision registeringDivision " +
-  (req.user.role === "ADMIN"
+  "passIssuedAt passExpiresAt createdAt visitingDivision registeringDivision " +
+  (["ADMIN", "SYSTEM_ADMIN"].includes(req.user.role)
     ? "rejectionReason rejectedAt "
     : "")
 )

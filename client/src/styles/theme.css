@@ -3,6 +3,24 @@
    Compact, neutral, one accent. Tailwind v4 exposes these as utilities
    (bg-brand, text-ink, border-line, rounded-card, ...).
 ------------------------------------------------------------------- */
+
+/* Dark appearance */
+:root[data-theme="dark"] {
+  --color-ink: #edf2ff;
+  --color-brand: #89a5ff;
+  --color-brand-hover: #a4b9ff;
+  --color-brand-soft: #253455;
+  --color-brand-ring: rgba(137, 165, 255, 0.2);
+
+  --color-canvas: #0c1323;
+  --color-line: #283349;
+  --color-line-strong: #39455d;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.18);
+  --shadow-pop: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;

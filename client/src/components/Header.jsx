@@ -13,6 +13,8 @@ import Avatar from "./common/Avatar";
 import { DIVISIONS } from "../config/divisions";
 import { divisionName } from "../config/divisions";
 import Spinner from "./common/Spinner";
+import { Monitor, Moon, Sun } from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
 
 const today = () =>
   new Date().toLocaleDateString("en-IN", {
@@ -31,7 +33,13 @@ const Header = ({ collapsed = false, onMenuClick, onToggleCollapse }) => {
 
   const name = user?.name || user?.employeeName || "User";
   const role = roleLabels[user?.role] || "User";
+const { theme, setTheme } = useTheme();
 
+const themeOptions = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Monitor },
+];
   useEffect(() => {
     if (!menuOpen) return undefined;
     const onKey = (event) => event.key === "Escape" && setMenuOpen(false);
@@ -151,6 +159,38 @@ const Header = ({ collapsed = false, onMenuClick, onToggleCollapse }) => {
                 {loggingOut ? <Spinner size={14} /> : <LogOut size={14} />}
                 {loggingOut ? "Signing out..." : "Sign out"}
               </button>
+              
+<div className="px-2.5 py-2">
+  <p className="mb-2 text-[11px] font-medium text-slate-500">
+    Appearance
+  </p>
+
+  <div
+    className="grid grid-cols-3 gap-1 rounded-control bg-slate-100 p-1"
+    role="group"
+    aria-label="Appearance"
+  >
+    {themeOptions.map(({ value, label, icon: Icon }) => (
+      <button
+        key={value}
+        type="button"
+        onClick={() => setTheme(value)}
+        aria-pressed={theme === value}
+        className={`flex flex-col items-center gap-1 rounded-control px-1 py-2 text-[10px] transition-colors ${
+          theme === value
+            ? "bg-white font-semibold text-brand shadow-sm"
+            : "text-slate-500 hover:text-slate-800"
+        }`}
+      >
+        <Icon size={15} />
+        {label}
+      </button>
+    ))}
+  </div>
+</div>
+
+<div className="my-1 h-px bg-line" />
+
             </div>
           </>
         )}

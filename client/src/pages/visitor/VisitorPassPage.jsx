@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { Download } from "lucide-react";
 
@@ -30,8 +30,15 @@ const Info = ({ label, value, mono = false }) => (
 const VisitorPassPage = () => {
   const { id } = useParams();
   const { user } = useAuth();
-  const backTo = user?.role === "ADMIN" ? "/admin/visitors" : "/gate/visitors";
+const location = useLocation();
 
+const backTo = location.pathname.startsWith("/admin/")
+  ? "/admin/visitors"
+  : location.pathname.startsWith("/gate/")
+    ? "/gate/visitors"
+    : ["SYSTEM_ADMIN", "ADMIN", "DIVISION_HR"].includes(user?.role)
+      ? "/admin/visitors"
+      : "/gate/visitors";
   const [visitor, setVisitor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -151,25 +158,47 @@ const VisitorPassPage = () => {
         </Card>
       </div>
 
-      <Card title="Pass verification" className="rise" style={{ "--i": 4 }}>
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-          <img
-            src={visitor.qrCode}
-            alt="Visitor verification QR code"
-            className="h-28 w-28 rounded-control border border-line bg-white p-1.5"
-          />
+      
+<Card
+  title={visitor.isPassActive ? "Pass verification" : "Pass history"}
+  className="rise"
+  style={{ "--i": 4 }}
+>
+  {visitor.isPassActive && visitor.qrCode ? (
+    <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+      <img
+        src={visitor.qrCode}
+        alt="Visitor checkout QR code"
+        className="h-28 w-28 rounded-control border border-line bg-white p-1.5"
+      />
 
-          <div>
-            <p className="text-[13px] font-medium text-slate-800">
-              Scan this QR code at the gate during exit.
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              The code is tied to this visitor's approved pass and can only be
-              used to check out.
-            </p>
-          </div>
-        </div>
-      </Card>
+      <div>
+        <p className="text-[13px] font-medium text-ink">
+          Scan this QR code at the gate during exit.
+        </p>
+
+        <p className="mt-1 text-xs text-slate-500">
+          This code is valid only while the pass is active.
+        </p>
+      </div>
+    </div>
+  ) : (
+    <div className="space-y-2">
+      <p className="text-[13px] font-semibold text-ink">
+        {visitor.status === "CHECKED_OUT"
+          ? "Visitor has checked out"
+          : "Visitor pass has expired"}
+      </p>
+
+      <p className="text-xs leading-5 text-slate-500">
+        This is a historical visitor record. You may view
+        and download the PDF, but the pass is no longer
+        valid for checkout.
+      </p>
+    </div>
+  )}
+</Card>
+
     </div>
   );
 };

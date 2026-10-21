@@ -10,7 +10,7 @@
     min-width: 320px;
     margin: 0;
     background: var(--color-canvas);
-    color: #1b1f33;
+   color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 14px;
     line-height: 1.45;
@@ -116,4 +116,110 @@
 @media print {
   .no-print { display: none !important; }
   body { background: #fff; }
+}
+
+
+/* Existing Gate Pass surfaces and text in dark mode */
+@layer utilities {
+  [data-theme="dark"] .bg-white {
+    background-color: #151f31;
+  }
+
+  [data-theme="dark"] .bg-slate-50,
+  [data-theme="dark"] .bg-slate-100 {
+    background-color: #202c40;
+  }
+
+  [data-theme="dark"] .bg-slate-200 {
+    background-color: #303d52;
+  }
+
+  [data-theme="dark"] .text-slate-900,
+  [data-theme="dark"] .text-slate-800,
+  [data-theme="dark"] .text-slate-700 {
+    color: #e4ebf8;
+  }
+
+  [data-theme="dark"] .text-slate-600,
+  [data-theme="dark"] .text-slate-500 {
+    color: #abb9ce;
+  }
+
+  [data-theme="dark"] .text-slate-400 {
+    color: #94a5bf;
+  }
+
+  [data-theme="dark"] .text-slate-300 {
+    color: #8697b0;
+  }
+
+  [data-theme="dark"] .bg-blue-50 {
+    background-color: #192e56;
+  }
+
+  [data-theme="dark"] .bg-emerald-50 {
+    background-color: #103b34;
+  }
+
+  [data-theme="dark"] .bg-amber-50 {
+    background-color: #43321c;
+  }
+
+  [data-theme="dark"] .bg-red-50 {
+    background-color: #48242c;
+  }
+
+  [data-theme="dark"] .bg-white\/85 {
+    background-color: rgba(21, 31, 49, 0.9);
+  }
+
+  [data-theme="dark"] .field {
+    background-color: #182437;
+    border-color: #39455d;
+    color: #edf2ff;
+    color-scheme: dark;
+  }
+
+  [data-theme="dark"] .field::placeholder {
+    color: #8494ad;
+  }
+
+  [data-theme="dark"] .field:disabled {
+    background-color: #263146;
+    color: #93a2bb;
+  }
+
+  [data-theme="dark"] .tbl thead th {
+    background-color: #202c40;
+    border-bottom-color: #39455d;
+    color: #a9b8ce;
+  }
+
+  [data-theme="dark"] .tbl tbody td {
+    border-bottom-color: #283349;
+  }
+
+  [data-theme="dark"] .tbl tbody tr:hover {
+    background-color: #202c40;
+  }
+
+  [data-theme="dark"] .hover\:bg-slate-50:hover,
+  [data-theme="dark"] .hover\:bg-slate-100:hover {
+    background-color: #29374e;
+  }
+
+  [data-theme="dark"] .hover\:text-slate-700:hover,
+  [data-theme="dark"] .hover\:text-slate-800:hover,
+  [data-theme="dark"] .hover\:text-slate-900:hover {
+    color: #ffffff;
+  }
+}
+
+/* Print remains light regardless of the selected theme */
+@media print {
+  :root[data-theme="dark"] {
+    --color-ink: #10132e;
+    --color-canvas: #ffffff;
+    --color-line: #e6e9f1;
+  }
 }

@@ -285,8 +285,9 @@ const canEditTimes = isAdmin;
                       {formatDate(visitor.createdAt)}
                     </td> */}
 <td className="text-right">
-  {canEditTimes &&
-  ["CHECKED_IN", "CHECKED_OUT"].includes(visitor.status) ? (
+  {isFrontDesk &&
+  ["CHECKED_IN", "CHECKED_OUT"].includes(visitor.status) &&
+  (visitor.passIssuedAt || visitor.inTime) ? (
     <button
       type="button"
       onClick={() => setEditingVisitor(visitor)}
